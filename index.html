@@ -154,6 +154,37 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 @keyframes breathe{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 .say{margin-top:30px;color:var(--sumi3);font-size:11px}
 .thrown{margin-top:26px;color:var(--sumi2);font-size:17px;line-height:1.5}
+.dial{position:relative;width:238px;height:238px;margin:26px auto 0;touch-action:none;cursor:grab}
+.dial:active{cursor:grabbing}
+.dial svg{position:absolute;inset:0;width:100%;height:100%;
+  transition:transform .13s cubic-bezier(.25,.9,.35,1)}
+.dial .marker{position:absolute;left:50%;top:-3px;width:2px;height:15px;border-radius:1px;
+  background:var(--lit);transform:translateX(-50%)}
+.dial .marker.tick{animation:tick .22s ease}
+@keyframes tick{50%{transform:translateX(-50%) scaleY(1.5)}}
+.hub{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:98px;height:98px;border-radius:50%;background:var(--sheet);
+  border:1px solid var(--edge);color:var(--sumi3);font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.hub:hover{border-color:var(--lit);color:var(--lit)}
+.moment{
+  position:relative;display:block;width:100%;text-align:center;margin-top:30px;
+  font-size:20px;font-weight:500;line-height:1.5;color:var(--sumi);
+}
+.moment .g{
+  position:absolute;left:-30px;right:-30px;top:-24px;bottom:-20px;
+  background:radial-gradient(52% 56% at 50% 50%, var(--bloom), transparent 78%);
+}
+.moment .mt{position:relative}
+.own{
+  display:block;width:100%;text-align:center;margin-top:30px;background:transparent;
+  border:0;border-bottom:1px solid var(--edge);color:var(--sumi);
+  font-family:var(--body);font-size:20px;padding:5px 0 11px;
+}
+.own:focus{outline:none;border-bottom-color:var(--lit)}
+.phase{text-align:center;margin-top:12px;color:var(--sumi3);font-size:10.5px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip{
   border:1px solid var(--edge);border-radius:999px;padding:9px 15px;
@@ -539,16 +570,51 @@ eDrop.addEventListener("click",function(){
 });
 
 /* ── 登録 ─────────────────────────────── */
-/* すでに毎日やっていること。鍵が無くても、くっつける相手はここから選べる。 */
+/* すでに毎日やっていること。直すシートの早取り用。 */
 var ANCHORS=["歯を磨いたら","顔を洗ったら","コーヒーを淹れたら","席についたら",
              "家に着いたら","靴を脱いだら","風呂から出たら","布団に入ったら"];
+
+/* 一日の細かい瞬間。朝から夜へ、起きた順に並べる。
+   右に回すと先へ、左に回すと戻る。輪なので夜から朝へ回り込む。 */
+var MOMENTS=[
+  ["目が覚めたら","morning"],["布団から足を出したら","morning"],
+  ["カーテンを開けたら","morning"],["トイレを出たら","morning"],
+  ["顔を洗ったら","morning"],["歯を磨いたら","morning"],
+  ["鏡から目を離したら","morning"],["体重計を降りたら","morning"],
+  ["コップに水を注いだら","morning"],["湯が沸いたら","morning"],
+  ["コーヒーを淹れたら","morning"],["最初の一口を飲んだら","morning"],
+  ["皿をシンクに置いたら","morning"],["薬を飲んだら","morning"],
+  ["着替え終わったら","morning"],["鞄を持ち上げたら","morning"],
+  ["靴を履いたら","morning"],["玄関の鍵を閉めたら","morning"],
+
+  ["改札を通ったら","midday"],["電車に乗ったら","midday"],
+  ["電車を降りたら","midday"],["エレベーターを待つ間","midday"],
+  ["席についたら","midday"],["画面を開く前に","midday"],
+  ["最初のメールを閉じたら","midday"],["会議が終わったら","midday"],
+  ["電話を切ったら","midday"],["立ち上がったとき","midday"],
+  ["手を洗ったら","midday"],["昼を食べ終えたら","midday"],
+  ["コンビニを出たら","midday"],["午後の一杯を淹れたら","midday"],
+  ["画面から目を離したとき","midday"],["伸びをしたあと","midday"],
+
+  ["仕事を閉じたら","evening"],["建物を出たら","evening"],
+  ["帰りの電車に乗ったら","evening"],["家の鍵を開けたら","evening"],
+  ["靴を脱いだら","evening"],["上着をかけたら","evening"],
+  ["うがいをしたら","evening"],["冷蔵庫を閉めたら","evening"],
+  ["夕食の皿を片づけたら","evening"],["湯を張ったら","evening"],
+
+  ["風呂から出たら","night"],["髪を乾かしたら","night"],
+  ["夜の歯磨きを終えたら","night"],["明日の服を出したら","night"],
+  ["照明を落としたら","night"],["スマホを充電器に置いたら","night"],
+  ["布団に入ったら","night"],["枕に頭をつけたら","night"]
+];
+var PHASES=["morning","midday","evening","night"];
 var seed=document.getElementById("seed"), after=document.getElementById("after");
 
 function renderNew(){
   var full=state.quests.length>=SLOTS;
   seed.disabled=full;
   seed.placeholder = full ? "three is enough" : "one small thing";
-  if(full){ after.innerHTML=""; flow=null; }
+  if(full){ after.innerHTML=""; flow=null; seed.style.display=""; }
 }
 
 function startQuest(text){
@@ -574,7 +640,7 @@ function commit(){
   if(!q) return;
   seed.value=""; seed.blur();
   /* 投げた時点でもう登録されている。ここから先は足さなくてよい。 */
-  flow={id:q.id, phrase:t, actions:[], anchors:[], list:[]};
+  flow={id:q.id, phrase:t, actions:[], anchors:[], mi:null};
   if(apiKey()){
     renderFlow("wait");
     callClaude(promptFor(t)).then(function(d){
@@ -604,32 +670,134 @@ function renderFlow(stage){
     });
     h+="</div>";
   }else if(stage==="anchor"){
-    flow.list=flow.anchors.concat(ANCHORS).slice(0,8);
-    h+='<div class="say en" style="margin-top:24px">after what</div><div class="chips">';
-    flow.list.forEach(function(a,i){
-      h+='<button class="chip" data-w="'+i+'">'+esc(a)+"</button>";
-    });
-    h+="</div>";
+    h+='<div class="say en" style="margin-top:22px">after what</div>'+
+       '<div class="dial" id="dial"><div class="marker" id="marker"></div>'+ticksSvg()+
+       '<button class="hub en" id="hub" aria-label="write your own">write</button></div>'+
+       '<button class="moment" id="moment"><span class="g"></span><span class="mt"></span></button>'+
+       '<div class="phase en" id="phase"></div>';
   }else{
     h+='<div class="say en">kept</div>';
   }
   after.innerHTML=h;
+  seed.style.display = (stage==="wait"||stage==="action"||stage==="anchor") ? "none" : "";
+  if(stage==="anchor") mountDial();
+}
+
+/* ── 一日をめくる輪 ───────────────────── */
+/* 目盛は瞬間の数だけ。相の変わり目だけ長い。輪ごと回して、上の印に来たものが今。 */
+function ticksSvg(){
+  var n=MOMENTS.length, C=119, R=110, out="";
+  for(var i=0;i<n;i++){
+    var head = (i===0) || (MOMENTS[i][1]!==MOMENTS[i-1][1]);
+    var a=(i*360/n-90)*Math.PI/180, r1=R-(head?15:8);
+    out+='<line data-i="'+i+'" x1="'+(C+Math.cos(a)*r1).toFixed(1)+'" y1="'+(C+Math.sin(a)*r1).toFixed(1)+
+         '" x2="'+(C+Math.cos(a)*R).toFixed(1)+'" y2="'+(C+Math.sin(a)*R).toFixed(1)+
+         '" stroke="var(--rule)" stroke-width="'+(head?2:1.2)+'" stroke-linecap="round"/>';
+  }
+  return '<svg id="ring" viewBox="0 0 238 238" aria-hidden="true">'+out+"</svg>";
+}
+
+function phaseNow(){
+  var h=new Date().getHours();
+  return h<11 ? "morning" : h<17 ? "midday" : h<21 ? "evening" : "night";
+}
+function firstOf(ph){
+  for(var i=0;i<MOMENTS.length;i++) if(MOMENTS[i][1]===ph) return i;
+  return 0;
+}
+
+function paintMoment(){
+  var m=MOMENTS[flow.mi];
+  var mt=document.querySelector("#moment .mt");
+  if(mt) mt.textContent=m[0];
+  var ph=document.getElementById("phase");
+  if(ph) ph.textContent=m[1];
+  var ring=document.getElementById("ring");
+  if(ring) ring.style.transform="rotate("+(-flow.mi*360/MOMENTS.length)+"deg)";
+  var mk=document.getElementById("marker");
+  if(mk){ mk.classList.remove("tick"); void mk.offsetWidth; mk.classList.add("tick"); }
+}
+
+function mountDial(){
+  if(typeof flow.mi!=="number") flow.mi=firstOf(phaseNow());
+  paintMoment();
+
+  var dial=document.getElementById("dial");
+  var step=360/MOMENTS.length, dragging=false, last=0, acc=0, base=0, moved=false;
+  function ang(e){
+    var r=dial.getBoundingClientRect();
+    return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2))*180/Math.PI;
+  }
+  function land(v){
+    var n=MOMENTS.length;
+    var i=((v%n)+n)%n;                       /* 夜から朝へ回り込む */
+    if(i!==flow.mi){ flow.mi=i; paintMoment(); }
+  }
+  dial.addEventListener("pointerdown",function(e){
+    if(e.target.closest("#hub")) return;
+    dragging=true; moved=false; base=flow.mi; acc=0; last=ang(e);
+    try{ dial.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  dial.addEventListener("pointermove",function(e){
+    if(!dragging) return;
+    var a=ang(e), d=a-last;
+    if(d>180) d-=360; if(d<-180) d+=360;
+    acc+=d; last=a;
+    if(Math.abs(acc)>6) moved=true;
+    land(base+Math.round(acc/step));
+  });
+  ["pointerup","pointercancel"].forEach(function(ev){
+    dial.addEventListener(ev,function(){ dragging=false; });
+  });
+  dial.addEventListener("wheel",function(e){
+    e.preventDefault();
+    land(flow.mi + (e.deltaY>0 || e.deltaX>0 ? 1 : -1));
+  },{passive:false});
+
+  document.getElementById("hub").addEventListener("click",function(e){
+    e.stopPropagation();
+    writeOwn();
+  });
+  document.getElementById("moment").addEventListener("click",function(){
+    if(moved){ moved=false; return; }
+    takeAnchor(MOMENTS[flow.mi][0]);
+  });
+}
+
+/* 出てこなかったら、真ん中を押して自分で書く。 */
+function writeOwn(){
+  var m=document.getElementById("moment");
+  if(!m) return;
+  m.outerHTML='<input type="text" id="ownIn" class="own" placeholder="—" autocomplete="off">';
+  var el=document.getElementById("ownIn");
+  el.focus();
+  /* Enterで直に確定する。blurは取りこぼしの受け皿。 */
+  function done(){
+    if(!document.getElementById("ownIn")) return;   /* もう確定済み */
+    var v=el.value.trim();
+    if(v) takeAnchor(v);
+  }
+  el.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ e.preventDefault(); done(); }
+  });
+  el.addEventListener("blur",done);
+}
+
+function takeAnchor(text){
+  var q=find(flow && flow.id);
+  if(q && text){ q.anchor=text; save(); renderLines(); }
+  renderFlow("done");
+  setTimeout(function(){ go(1); flow=null; after.innerHTML=""; seed.style.display=""; }, 700);
 }
 
 after.addEventListener("click",function(e){
   if(!flow) return;
-  var a=e.target.closest("[data-a]"), w=e.target.closest("[data-w]");
+  var a=e.target.closest("[data-a]");
   if(a){
     var q1=find(flow.id), act=flow.actions[+a.getAttribute("data-a")];
     if(q1 && act){ q1.action=act.text; q1.title=act.text; save(); renderLines(); }
     renderFlow("anchor");
     return;
-  }
-  if(w){
-    var q2=find(flow.id), an=flow.list[+w.getAttribute("data-w")];
-    if(q2 && an){ q2.anchor=an; save(); renderLines(); }
-    renderFlow("done");
-    setTimeout(function(){ go(1); flow=null; after.innerHTML=""; }, 700);
   }
 });
 

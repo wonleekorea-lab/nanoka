@@ -140,6 +140,54 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 @keyframes breathe{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 .say{margin-top:30px;color:var(--sumi3);font-size:11px}
 .thrown{margin-top:26px;color:var(--sumi2);font-size:17px;line-height:1.5}
+/* 投げた言葉が砕ける */
+.blast{position:relative;margin-top:34px;text-align:center;font-size:22px;font-weight:500;
+  color:var(--sumi);line-height:1.5}
+.blast .c{display:inline-block;will-change:transform}
+.blast.go .c{animation:burst .8s cubic-bezier(.2,.75,.3,1) both;animation-delay:var(--d)}
+@keyframes burst{
+  0%{transform:none;opacity:1}
+  10%{transform:translateY(-3px) scale(1.07)}
+  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rr)) scale(.45);opacity:0;filter:blur(1.5px)}
+}
+.blast .flash{position:absolute;left:-60px;right:-60px;top:-60px;bottom:-60px;opacity:0;
+  pointer-events:none;background:radial-gradient(38% 52% at 50% 50%, var(--bloom), transparent 72%)}
+.blast.go .flash{animation:blastflash .7s ease-out both}
+@keyframes blastflash{0%{opacity:0}16%{opacity:1}100%{opacity:0}}
+
+/* 落ちた破片。列に整えず、ばらけたまま拾わせる。 */
+.shards{margin-top:26px;display:flex;flex-direction:column;gap:11px}
+.shard{
+  align-self:flex-start;max-width:100%;text-align:left;
+  border:1px solid var(--edge);background:var(--sheet);border-radius:3px;
+  padding:12px 15px;font-size:16px;line-height:1.45;color:var(--sumi2);
+  opacity:0;animation:land .55s cubic-bezier(.2,.8,.3,1) both;animation-delay:var(--d);
+  transform:rotate(var(--r)) translateX(var(--x));
+  transition:color .2s,border-color .2s,box-shadow .35s,background .2s;
+}
+@keyframes land{
+  from{opacity:0;transform:rotate(var(--r)) translate(var(--x),14px) scale(.92)}
+  to{opacity:1;transform:rotate(var(--r)) translateX(var(--x))}
+}
+.shard:hover,.shard:active{color:var(--hot);border-color:var(--lit);background:var(--sheet2);
+  box-shadow:0 0 22px var(--bloom)}
+
+/* 左へ流れる瞬間。触れている間だけ止まる。 */
+.river{margin-top:18px}
+.lane{
+  display:flex;gap:8px;width:max-content;margin-bottom:9px;
+  animation:drift var(--s) linear infinite;
+}
+.river.hold .lane{animation-play-state:paused}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.river-mask{position:relative;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+.mchip.warm{color:var(--sumi);border-color:#3A3226;animation:emberpulse 4.5s ease-in-out infinite}
+@keyframes emberpulse{
+  0%,100%{box-shadow:0 0 10px var(--bloom-soft)}
+  50%{box-shadow:0 0 22px var(--bloom)}
+}
 .field{margin-top:20px}
 .cluster{position:relative;margin-bottom:24px}
 .cl-glow{
@@ -608,6 +656,33 @@ seed.addEventListener("blur",function(){ if(seed.value.trim().length>=2) commit(
 
 var flow=null;
 
+/* ── 投げた言葉を1分まで割る ───────────── */
+/* 「〜したい」を辞書形に戻す。い段→う段（五段）、え段→+る（一段）。 */
+var IDAN="いきしちにひみりぎじぢびぴ", UDAN="うくすつぬふむるぐずづぶぷ";
+var EDAN="えけせてねへめれげぜでべぺ";
+function dictForm(t){
+  t=String(t||"").trim();
+  t=t.replace(/(し|やり|なり)たい$/,function(m,v){
+    return v==="し" ? "する" : v==="やり" ? "やる" : "なる";
+  });
+  if(/たい$/.test(t)){
+    var stem=t.slice(0,-2), last=stem.slice(-1), i=IDAN.indexOf(last);
+    if(i>=0) t=stem.slice(0,-1)+UDAN[i];
+    else if(EDAN.indexOf(last)>=0) t=stem+"る";
+  }
+  return t;
+}
+/* 方向を変えて割る。時間・回数・準備・姿勢・一部・尺。 */
+function shrink(phrase){
+  var v=dictForm(phrase), verb=UDAN.indexOf(v.slice(-1))>=0;
+  var list = verb
+    ? ["10秒だけ"+v, "1回だけ"+v, v+"ための道具を手に取る",
+       v+"前の姿勢をとるだけ", "最初のひとつだけ"+v, v+"のを1分だけ"]
+    : [v+"を10秒だけ", v+"を1回だけ", v+"に触れるだけ",
+       v+"を開くだけ", v+"を目に入れるだけ", v+"を1分だけ"];
+  return list.map(function(t){ return {text:t}; });
+}
+
 function commit(){
   var t=seed.value.trim();
   if(!t || state.quests.length>=SLOTS) return;
@@ -616,17 +691,26 @@ function commit(){
   seed.value=""; seed.blur();
   /* 投げた時点でもう登録されている。ここから先は足さなくてよい。 */
   flow={id:q.id, phrase:t, actions:[], anchors:[], pool:[]};
+  renderFlow("blast");
+  /* 手元の割り方を先に落とす。鍵があれば、遅れて来た分をあとから足す。 */
+  flow.actions=shrink(t);
+  setTimeout(function(){ if(flow) renderFlow("action"); }, 820);
   if(apiKey()){
-    renderFlow("wait");
     callClaude(promptFor(t)).then(function(d){
-      flow.actions=(d && d.actions || []).slice(0,3).map(function(a){
+      if(!flow) return;
+      var have={}; flow.actions.forEach(function(a){ have[a.text]=1; });
+      var add=(d && d.actions || []).map(function(a){
         return typeof a==="string" ? {text:a} : {text:String(a.text||"")};
-      }).filter(function(a){ return a.text; });
-      flow.anchors=(d && d.anchors || []).slice(0,4).map(String).filter(Boolean);
-      renderFlow(flow.actions.length ? "action" : "anchor");
-    }).catch(function(){ renderFlow("anchor"); });
-  }else{
-    renderFlow("anchor");
+      }).filter(function(a){ return a.text && !have[a.text]; });
+      flow.anchors=(d && d.anchors || []).slice(0,5).map(String).filter(Boolean);
+      if(add.length && document.getElementById("shards")){
+        var from=flow.actions.length;
+        flow.actions=flow.actions.concat(add);
+        addShards(from);
+      }else if(add.length){
+        flow.actions=flow.actions.concat(add);
+      }
+    }).catch(function(){});
   }
 }
 
@@ -635,23 +719,51 @@ function renderFlow(stage){
   if(!flow){ after.innerHTML=""; return; }
   var live=find(flow.id);
   if(!live){ after.innerHTML=""; flow=null; return; }
-  var h='<div class="thrown">'+esc(live.action)+"</div>";
-  if(stage==="wait"){
-    h+='<div class="wait"><i></i><span class="en">making it smaller</span></div>';
+  var h="";
+  if(stage==="blast"){
+    h+=blastHtml(flow.phrase);
   }else if(stage==="action"){
-    h+='<div class="say en" style="margin-top:24px">one minute</div><div class="cands">';
-    flow.actions.forEach(function(a,i){
-      h+='<button class="cand" data-a="'+i+'">'+esc(a.text)+"</button>";
-    });
-    h+="</div>";
+    h+='<div class="say en" style="margin-top:8px">one minute</div><div class="shards" id="shards"></div>';
   }else if(stage==="anchor"){
-    h+='<div class="say en" style="margin-top:20px">after what</div>'+fieldHtml();
+    h+='<div class="thrown">'+esc(live.action)+"</div>"+
+       '<div class="say en" style="margin-top:18px">after what</div>'+riverHtml();
   }else{
-    h+='<div class="say en">kept</div>';
+    h+='<div class="thrown">'+esc(live.action)+'</div><div class="say en">kept</div>';
   }
   after.innerHTML=h;
-  seed.style.display = (stage==="wait"||stage==="action"||stage==="anchor") ? "none" : "";
-  document.getElementById("pane-new").classList.toggle("scrolly", stage==="anchor");
+  seed.style.display = (stage==="blast"||stage==="action"||stage==="anchor") ? "none" : "";
+  document.getElementById("pane-new").classList.toggle("scrolly", stage==="action"||stage==="anchor");
+  if(stage==="blast"){
+    var b=document.getElementById("blast");
+    if(b){ void b.offsetWidth; b.classList.add("go"); }
+  }
+  if(stage==="action") addShards(0);
+  if(stage==="anchor") holdRiver();
+}
+
+/* 投げた言葉を、字ごとに散らす。 */
+function blastHtml(text){
+  var h='<div class="blast" id="blast"><span class="flash"></span>';
+  String(text).split("").forEach(function(ch,i){
+    var a=Math.random()*Math.PI*2, r=70+Math.random()*130;
+    h+='<span class="c" style="--dx:'+(Math.cos(a)*r).toFixed(0)+'px;--dy:'+
+       (Math.sin(a)*r*0.7-20).toFixed(0)+'px;--rr:'+((Math.random()-0.5)*160).toFixed(0)+
+       'deg;--d:'+(i*22+Math.random()*40).toFixed(0)+'ms">'+esc(ch)+"</span>";
+  });
+  return h+"</div>";
+}
+
+/* 破片を落とす。列に整えず、ばらけさせる。 */
+function addShards(from){
+  var box=document.getElementById("shards");
+  if(!box) return;
+  var h="";
+  for(var i=from;i<flow.actions.length;i++){
+    h+='<button class="shard" data-a="'+i+'" style="--r:'+((Math.random()-0.5)*2.6).toFixed(2)+
+       'deg;--x:'+(Math.random()*34).toFixed(0)+'px;--d:'+((i-from)*70+60)+'ms">'+
+       esc(flow.actions[i].text)+"</button>";
+  }
+  box.insertAdjacentHTML("beforeend", h);
 }
 
 /* ── 瞬間の場 ─────────────────────────── */
@@ -661,33 +773,43 @@ function phaseNow(){
   return h<11 ? "morning" : h<17 ? "midday" : h<21 ? "evening" : "night";
 }
 
-function fieldHtml(){
-  var now=phaseNow(), start=0, i;
-  for(i=0;i<CLUSTERS.length;i++){ if(CLUSTERS[i][1]===now){ start=i; break; } }
-  var order=CLUSTERS.slice(start).concat(CLUSTERS.slice(0,start));
-
-  flow.pool=[];
-  var h='<div class="field">';
-
-  /* 鍵があるときは、その習慣に寄せた候補を最初の塊に置く。 */
-  if(flow.anchors && flow.anchors.length){
-    h+=cluster("for this", flow.anchors, true);
-  }
-  order.forEach(function(c,k){
-    h+=cluster(c[0], c[2], !flow.anchors.length && k===0);
+/* 瞬間は探させない。左へゆっくり流し、文脈に近いものだけ薄く光らせる。 */
+function riverHtml(){
+  var now=phaseNow(), items=[];
+  (flow.anchors||[]).forEach(function(t){ items.push([t,true]); });
+  CLUSTERS.forEach(function(c){
+    c[2].forEach(function(t){ items.push([t, c[1]===now]); });
   });
-  h+='<button class="mchip own en" data-own>write your own</button></div>';
-  return h;
+  flow.pool=items.map(function(x){ return x[0]; });
+
+  var L=6, lanes=[];
+  for(var n=0;n<L;n++) lanes.push([]);
+  items.forEach(function(x,i){ lanes[i%L].push(i); });
+
+  var speed=["58s","74s","64s","82s","68s","90s"], h='<div class="river" id="river">';
+  lanes.forEach(function(idx,li){
+    var row="";
+    for(var pass=0;pass<2;pass++){
+      idx.forEach(function(i){
+        row+='<button class="mchip'+(items[i][1]?" warm":"")+'" data-m="'+i+'">'+
+             esc(items[i][0])+"</button>";
+      });
+    }
+    h+='<div class="river-mask"><div class="lane" style="--s:'+speed[li]+'">'+row+"</div></div>";
+  });
+  return h+'</div><button class="mchip own en" data-own style="margin-top:16px">write your own</button>';
 }
 
-function cluster(name, items, near){
-  var h='<div class="cluster'+(near?" near":"")+'"><span class="cl-glow"></span>'+
-        '<div class="cl-name en">'+esc(name)+'</div><div class="cl-items">';
-  items.forEach(function(t){
-    var i=flow.pool.length; flow.pool.push(t);
-    h+='<button class="mchip" data-m="'+i+'">'+esc(t)+"</button>";
+/* 触れている間は止める。動く的は掴めない。 */
+function holdRiver(){
+  var r=document.getElementById("river");
+  if(!r) return;
+  ["pointerdown","pointerenter"].forEach(function(ev){
+    r.addEventListener(ev,function(){ r.classList.add("hold"); });
   });
-  return h+"</div></div>";
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+    r.addEventListener(ev,function(){ r.classList.remove("hold"); });
+  });
 }
 
 /* 出てこなかったら、自分で書く。 */
@@ -743,7 +865,9 @@ function promptFor(t){
   return PROMPT+"ユーザーが身につけたいこと: 「"+t+"」\n\n"+
   "次の形のJSONだけを返してください（説明文は不要）:\n"+
   '{"actions":[{"text":"1分で終わる具体的な行動。18文字以内"}],"anchors":["すでに毎日やっている行動。12文字以内、「〜したら」「〜の前に」の形"]}\n'+
-  "actionsは3つ、anchorsは4つ。すべて日本語。";
+  "actionsは6つ。ただし似た案を並べず、削る方向を変えること："+
+  "時間を削る／回数を削る／準備だけにする／姿勢や場所だけにする／一部分だけにする／道具に触れるだけにする。\n"+
+  "anchorsは5つ。すべて日本語。";
 }
 
 function callClaude(prompt){

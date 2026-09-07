@@ -1,5 +1,5 @@
 // ネット優先・キャッシュ退避。圏外でも開ける状態を保ちつつ、更新は次回起動で入る。
-const CACHE = "nanoka-v10";
+const CACHE = "nanoka-v11";
 self.addEventListener("install", e => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil((async () => {
   const names = await caches.keys();

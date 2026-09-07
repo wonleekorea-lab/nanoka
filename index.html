@@ -153,6 +153,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .wait i{width:6px;height:6px;border-radius:50%;background:var(--lit);animation:breathe 1.6s ease-in-out infinite}
 @keyframes breathe{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 .say{margin-top:30px;color:var(--sumi3);font-size:11px}
+.thrown{margin-top:26px;color:var(--sumi2);font-size:17px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{
+  border:1px solid var(--edge);border-radius:999px;padding:9px 15px;
+  font-size:14px;color:var(--sumi2);line-height:1.4;
+}
+.chip:hover{border-color:var(--lit);color:var(--lit)}
 
 /* ── 記録 ────────────────────────────────────────────── */
 #pane-dash{padding:0 28px}
@@ -339,6 +346,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   <div class="f2">
     <label class="en" for="eWhen">after what</label>
     <input type="text" id="eWhen" class="sm" autocomplete="off" placeholder="—">
+    <div class="chips" id="eChips"></div>
   </div>
   <div class="b">
     <button class="en keep" id="eSave">save</button>
@@ -492,6 +500,9 @@ function openEdit(id){
   editId=id; dropArmed=false;
   eDrop.textContent="let go";
   eWhat.value=q.action||""; eWhen.value=q.anchor||"";
+  document.getElementById("eChips").innerHTML=ANCHORS.map(function(a){
+    return '<button class="chip" data-c="'+esc(a)+'">'+esc(a)+"</button>";
+  }).join("");
   sheetBg.classList.add("on"); sheet.classList.add("on");
   setTimeout(function(){ eWhat.focus(); }, 260);
 }
@@ -500,6 +511,10 @@ function closeEdit(){
   editId=null; dropArmed=false;
 }
 sheetBg.addEventListener("click",closeEdit);
+document.getElementById("eChips").addEventListener("click",function(e){
+  var c=e.target.closest("[data-c]");
+  if(c) eWhen.value=c.getAttribute("data-c");
+});
 document.getElementById("eSave").addEventListener("click",function(){
   var q=find(editId);
   if(q){
@@ -524,13 +539,16 @@ eDrop.addEventListener("click",function(){
 });
 
 /* ── 登録 ─────────────────────────────── */
+/* すでに毎日やっていること。鍵が無くても、くっつける相手はここから選べる。 */
+var ANCHORS=["歯を磨いたら","顔を洗ったら","コーヒーを淹れたら","席についたら",
+             "家に着いたら","靴を脱いだら","風呂から出たら","布団に入ったら"];
 var seed=document.getElementById("seed"), after=document.getElementById("after");
 
 function renderNew(){
   var full=state.quests.length>=SLOTS;
   seed.disabled=full;
   seed.placeholder = full ? "three is enough" : "one small thing";
-  if(full){ after.innerHTML=""; }
+  if(full){ after.innerHTML=""; flow=null; }
 }
 
 function startQuest(text){
@@ -547,43 +565,73 @@ seed.addEventListener("keydown",function(e){
 });
 seed.addEventListener("blur",function(){ if(seed.value.trim().length>=2) commit(); });
 
+var flow=null;
+
 function commit(){
   var t=seed.value.trim();
   if(!t || state.quests.length>=SLOTS) return;
   var q=startQuest(t);
   if(!q) return;
   seed.value=""; seed.blur();
-  after.innerHTML='<div class="say en">kept</div>';
-  go(1);
-  if(apiKey()) suggest(q, t);
+  /* 投げた時点でもう登録されている。ここから先は足さなくてよい。 */
+  flow={id:q.id, phrase:t, actions:[], anchors:[], list:[]};
+  if(apiKey()){
+    renderFlow("wait");
+    callClaude(promptFor(t)).then(function(d){
+      flow.actions=(d && d.actions || []).slice(0,3).map(function(a){
+        return typeof a==="string" ? {text:a} : {text:String(a.text||"")};
+      }).filter(function(a){ return a.text; });
+      flow.anchors=(d && d.anchors || []).slice(0,4).map(String).filter(Boolean);
+      renderFlow(flow.actions.length ? "action" : "anchor");
+    }).catch(function(){ renderFlow("anchor"); });
+  }else{
+    renderFlow("anchor");
+  }
 }
 
-/* 鍵があるときだけ、あとから1分の形に言い直す案を並べる。無視してよい。 */
-function suggest(q, text){
-  after.innerHTML='<div class="wait"><i></i><span class="en">making it smaller</span></div>';
-  callClaude(promptFor(text)).then(function(d){
-    var acts=(d && d.actions || []).slice(0,3).map(function(a){
-      return typeof a==="string" ? {text:a,when:""}
-           : {text:String(a.text||""), when:String(a.anchor||a.note||"")};
-    }).filter(function(a){ return a.text; });
-    if(!acts.length){ after.innerHTML=""; return; }
-    var h='<div class="say en" style="margin-top:26px">smaller</div><div class="cands">';
-    acts.forEach(function(a,i){
-      h+='<button class="cand" data-i="'+i+'">'+esc(a.text)+
-         (a.when?"<small>"+esc(a.when)+"</small>":"")+"</button>";
+/* wait → action（1分に割った案）→ anchor（くっつける相手）→ done */
+function renderFlow(stage){
+  if(!flow){ after.innerHTML=""; return; }
+  var live=find(flow.id);
+  if(!live){ after.innerHTML=""; flow=null; return; }
+  var h='<div class="thrown">'+esc(live.action)+"</div>";
+  if(stage==="wait"){
+    h+='<div class="wait"><i></i><span class="en">making it smaller</span></div>';
+  }else if(stage==="action"){
+    h+='<div class="say en" style="margin-top:24px">one minute</div><div class="cands">';
+    flow.actions.forEach(function(a,i){
+      h+='<button class="cand" data-a="'+i+'">'+esc(a.text)+"</button>";
     });
     h+="</div>";
-    after.innerHTML=h;
-    after.querySelectorAll(".cand").forEach(function(el){
-      el.addEventListener("click",function(){
-        var a=acts[+el.getAttribute("data-i")], live=find(q.id);
-        if(live){ live.action=a.text; live.anchor=a.when; live.title=a.text; save(); renderLines(); }
-        after.innerHTML='<div class="say en">kept</div>';
-        go(1);
-      });
+  }else if(stage==="anchor"){
+    flow.list=flow.anchors.concat(ANCHORS).slice(0,8);
+    h+='<div class="say en" style="margin-top:24px">after what</div><div class="chips">';
+    flow.list.forEach(function(a,i){
+      h+='<button class="chip" data-w="'+i+'">'+esc(a)+"</button>";
     });
-  }).catch(function(){ after.innerHTML=""; });
+    h+="</div>";
+  }else{
+    h+='<div class="say en">kept</div>';
+  }
+  after.innerHTML=h;
 }
+
+after.addEventListener("click",function(e){
+  if(!flow) return;
+  var a=e.target.closest("[data-a]"), w=e.target.closest("[data-w]");
+  if(a){
+    var q1=find(flow.id), act=flow.actions[+a.getAttribute("data-a")];
+    if(q1 && act){ q1.action=act.text; q1.title=act.text; save(); renderLines(); }
+    renderFlow("anchor");
+    return;
+  }
+  if(w){
+    var q2=find(flow.id), an=flow.list[+w.getAttribute("data-w")];
+    if(q2 && an){ q2.anchor=an; save(); renderLines(); }
+    renderFlow("done");
+    setTimeout(function(){ go(1); flow=null; after.innerHTML=""; }, 700);
+  }
+});
 
 var PROMPT=
 "あなたは習慣設計のコーチです。続かないのは意志ではなく設計の問題だと知っています。\n"+
@@ -594,8 +642,8 @@ var PROMPT=
 function promptFor(t){
   return PROMPT+"ユーザーが身につけたいこと: 「"+t+"」\n\n"+
   "次の形のJSONだけを返してください（説明文は不要）:\n"+
-  '{"actions":[{"text":"1分で終わる具体的な行動。18文字以内","anchor":"すでにやっている行動。12文字以内、「〜したら」「〜の前に」の形"}]}\n'+
-  "actionsは3つ。すべて日本語。";
+  '{"actions":[{"text":"1分で終わる具体的な行動。18文字以内"}],"anchors":["すでに毎日やっている行動。12文字以内、「〜したら」「〜の前に」の形"]}\n'+
+  "actionsは3つ、anchorsは4つ。すべて日本語。";
 }
 
 function callClaude(prompt){

@@ -565,6 +565,7 @@ eDrop.addEventListener("click",function(){
 });
 [eWhat,eWhen].forEach(function(el){
   el.addEventListener("keydown",function(e){
+    if(e.isComposing || e.keyCode===229) return;
     if(e.key==="Enter"){ e.preventDefault(); document.getElementById("eSave").click(); }
   });
 });
@@ -627,6 +628,7 @@ function startQuest(text){
 }
 
 seed.addEventListener("keydown",function(e){
+  if(e.isComposing || e.keyCode===229) return;   /* 変換中の確定Enterは登録ではない */
   if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); commit(); }
 });
 seed.addEventListener("blur",function(){ if(seed.value.trim().length>=2) commit(); });
@@ -778,6 +780,7 @@ function writeOwn(){
     if(v) takeAnchor(v);
   }
   el.addEventListener("keydown",function(e){
+    if(e.isComposing || e.keyCode===229) return;
     if(e.key==="Enter"){ e.preventDefault(); done(); }
   });
   el.addEventListener("blur",done);

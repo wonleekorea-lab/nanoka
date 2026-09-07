@@ -140,34 +140,55 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 @keyframes breathe{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 .say{margin-top:30px;color:var(--sumi3);font-size:11px}
 .thrown{margin-top:26px;color:var(--sumi2);font-size:17px;line-height:1.5}
-/* 投げた言葉が砕ける */
-.blast{position:relative;margin-top:34px;text-align:center;font-size:22px;font-weight:500;
+/* 投げた言葉が、少し浮いて、どんと落ちて、砕けて横へ転がる */
+.blast{position:relative;margin-top:30px;text-align:center;font-size:22px;font-weight:500;
   color:var(--sumi);line-height:1.5}
-.blast .c{display:inline-block;will-change:transform}
-.blast.go .c{animation:burst .8s cubic-bezier(.2,.75,.3,1) both;animation-delay:var(--d)}
-@keyframes burst{
-  0%{transform:none;opacity:1}
-  10%{transform:translateY(-3px) scale(1.07)}
-  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rr)) scale(.45);opacity:0;filter:blur(1.5px)}
+.blast.go{animation:slam .46s cubic-bezier(.35,0,.7,1) both}
+@keyframes slam{
+  0%{transform:translateY(0)}
+  46%{transform:translateY(-20px)}          /* 浮く */
+  62%{transform:translateY(-16px)}          /* ためる */
+  76%{transform:translateY(9px) scaleY(.88) scaleX(1.06)}   /* 落ちて潰れる */
+  88%{transform:translateY(2px) scaleY(1.02)}
+  100%{transform:none}
 }
-.blast .flash{position:absolute;left:-60px;right:-60px;top:-60px;bottom:-60px;opacity:0;
-  pointer-events:none;background:radial-gradient(38% 52% at 50% 50%, var(--bloom), transparent 72%)}
-.blast.go .flash{animation:blastflash .7s ease-out both}
-@keyframes blastflash{0%{opacity:0}16%{opacity:1}100%{opacity:0}}
+.blast .c{display:inline-block;will-change:transform}
+.blast.go .c{animation:crumble .95s cubic-bezier(.18,.62,.3,1) both;animation-delay:calc(340ms + var(--d))}
+@keyframes crumble{
+  0%{transform:none;opacity:1}
+  14%{transform:translate(calc(var(--dx)*.30), -6px) rotate(calc(var(--rr)*.25))}  /* 跳ねる */
+  48%{transform:translate(calc(var(--dx)*.72), var(--dy)) rotate(calc(var(--rr)*.7));opacity:1}
+  100%{transform:translate(var(--dx), calc(var(--dy) + 26px)) rotate(var(--rr)) scale(.5);
+       opacity:0;filter:blur(1px)}                                                  /* 転がって消える */
+}
+.blast .flash{position:absolute;left:-70px;right:-70px;top:-70px;bottom:-70px;opacity:0;
+  pointer-events:none;background:radial-gradient(38% 46% at 50% 58%, var(--bloom), transparent 70%)}
+.blast.go .flash{animation:blastflash .6s ease-out both;animation-delay:320ms}
+@keyframes blastflash{0%{opacity:0}14%{opacity:1}100%{opacity:0}}
+/* 落ちた床。衝撃が横に走る。 */
+.blast .shock{position:absolute;left:0;right:0;top:60%;height:1px;opacity:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--lit),transparent)}
+.blast.go .shock{animation:shock .5s cubic-bezier(.1,.8,.3,1) both;animation-delay:330ms}
+@keyframes shock{
+  0%{opacity:0;transform:scaleX(.05)}
+  20%{opacity:.9;transform:scaleX(.5)}
+  100%{opacity:0;transform:scaleX(1.6)}
+}
 
-/* 落ちた破片。列に整えず、ばらけたまま拾わせる。 */
-.shards{margin-top:26px;display:flex;flex-direction:column;gap:11px}
+/* 落ちた破片。左右にばらけて、跳ねて止まる。 */
+.shards{margin-top:20px;display:flex;flex-direction:column;gap:7px}
 .shard{
-  align-self:flex-start;max-width:100%;text-align:left;
-  border:1px solid var(--edge);background:var(--sheet);border-radius:3px;
-  padding:12px 15px;font-size:16px;line-height:1.45;color:var(--sumi2);
-  opacity:0;animation:land .55s cubic-bezier(.2,.8,.3,1) both;animation-delay:var(--d);
-  transform:rotate(var(--r)) translateX(var(--x));
+  max-width:88%;text-align:left;
+  border:1px solid var(--edge);background:var(--sheet);border-radius:2px;
+  padding:11px 14px;line-height:1.4;color:var(--sumi2);
+  opacity:0;animation:tumble .62s cubic-bezier(.2,.9,.35,1) both;animation-delay:var(--d);
   transition:color .2s,border-color .2s,box-shadow .35s,background .2s;
 }
-@keyframes land{
-  from{opacity:0;transform:rotate(var(--r)) translate(var(--x),14px) scale(.92)}
-  to{opacity:1;transform:rotate(var(--r)) translateX(var(--x))}
+@keyframes tumble{
+  0%{opacity:0;transform:translate(var(--x),-40px) rotate(calc(var(--r) * -2.4)) scale(.92)}
+  55%{opacity:1;transform:translate(var(--x),7px) rotate(calc(var(--r) * 1.25)) scale(1.015)}
+  74%{transform:translate(var(--x),-3px) rotate(calc(var(--r) * .85))}
+  100%{opacity:1;transform:translate(var(--x),0) rotate(var(--r))}
 }
 .shard:hover,.shard:active{color:var(--hot);border-color:var(--lit);background:var(--sheet2);
   box-shadow:0 0 22px var(--bloom)}
@@ -672,15 +693,32 @@ function dictForm(t){
   }
   return t;
 }
-/* 方向を変えて割る。時間・回数・準備・姿勢・一部・尺。 */
+/* 1分にするとは、断れなくなるところまでハードルを落とすこと。
+   「短くやる」ではなく、やる手前の一手だけを取り出す。
+   「〜を」があれば対象を掴んで、道具側からも落とす。 */
 function shrink(phrase){
   var v=dictForm(phrase), verb=UDAN.indexOf(v.slice(-1))>=0;
-  var list = verb
-    ? ["10秒だけ"+v, "1回だけ"+v, v+"ための道具を手に取る",
-       v+"前の姿勢をとるだけ", "最初のひとつだけ"+v, v+"のを1分だけ"]
-    : [v+"を10秒だけ", v+"を1回だけ", v+"に触れるだけ",
-       v+"を開くだけ", v+"を目に入れるだけ", v+"を1分だけ"];
-  return list.map(function(t){ return {text:t}; });
+  var raw=String(phrase), cut=raw.indexOf("を");
+  var n=(cut>0 && cut<=12) ? raw.slice(0,cut) : null;
+  var pool=[];
+  if(n){
+    pool.push(n+"を手に取るだけ", n+"を開くだけ", n+"を目に入る所に置く",
+              n+"に10秒だけ触れる", n+"を出して、しまわない", n+"の前に座るだけ");
+  }
+  if(verb){
+    pool.push(v+"構えだけつくる", v+"のを10秒でやめる", v+"場所に立つだけ",
+              "明日"+v+"ための物を出す", v+"のを1回で終える",
+              "やる気が出る前に"+v);
+  }else{
+    pool.push(v+"に10秒だけ触れる", v+"を目に入る所に置く",
+              "明日の"+v+"を出しておく", v+"を1つだけ");
+  }
+  var out=[], seen={};
+  while(pool.length && out.length<6){
+    var t=pool.splice(Math.floor(Math.random()*pool.length),1)[0];
+    if(!seen[t]){ seen[t]=1; out.push({text:t}); }
+  }
+  return out;
 }
 
 function commit(){
@@ -741,14 +779,17 @@ function renderFlow(stage){
   if(stage==="anchor") holdRiver();
 }
 
-/* 投げた言葉を、字ごとに散らす。 */
+/* 投げた言葉を、床に叩きつけて砕く。破片は横へ散り、下へ落ちる。 */
 function blastHtml(text){
-  var h='<div class="blast" id="blast"><span class="flash"></span>';
-  String(text).split("").forEach(function(ch,i){
-    var a=Math.random()*Math.PI*2, r=70+Math.random()*130;
-    h+='<span class="c" style="--dx:'+(Math.cos(a)*r).toFixed(0)+'px;--dy:'+
-       (Math.sin(a)*r*0.7-20).toFixed(0)+'px;--rr:'+((Math.random()-0.5)*160).toFixed(0)+
-       'deg;--d:'+(i*22+Math.random()*40).toFixed(0)+'ms">'+esc(ch)+"</span>";
+  var chars=String(text).split(""), mid=(chars.length-1)/2;
+  var h='<div class="blast" id="blast"><span class="flash"></span><span class="shock"></span>';
+  chars.forEach(function(ch,i){
+    var side=(i-mid)/(mid||1);                       /* 中心から外へ逃がす */
+    var dx=side*(70+Math.random()*130) + (Math.random()-0.5)*40;
+    var dy=18+Math.random()*70;                      /* かならず下へ */
+    h+='<span class="c" style="--dx:'+dx.toFixed(0)+'px;--dy:'+dy.toFixed(0)+
+       'px;--rr:'+((Math.random()-0.5)*260).toFixed(0)+
+       'deg;--d:'+(Math.random()*90).toFixed(0)+'ms">'+esc(ch)+"</span>";
   });
   return h+"</div>";
 }
@@ -757,10 +798,14 @@ function blastHtml(text){
 function addShards(from){
   var box=document.getElementById("shards");
   if(!box) return;
-  var h="";
+  var h="", place=["flex-start","center","flex-end"];
   for(var i=from;i<flow.actions.length;i++){
-    h+='<button class="shard" data-a="'+i+'" style="--r:'+((Math.random()-0.5)*2.6).toFixed(2)+
-       'deg;--x:'+(Math.random()*34).toFixed(0)+'px;--d:'+((i-from)*70+60)+'ms">'+
+    var al=place[Math.floor(Math.random()*3)];
+    var x=(Math.random()*46-23).toFixed(0);
+    h+='<button class="shard" data-a="'+i+'" style="align-self:'+al+
+       ';font-size:'+(15+Math.random()*2.6).toFixed(1)+'px'+
+       ';--r:'+((Math.random()-0.5)*7).toFixed(2)+'deg'+
+       ';--x:'+x+'px;--d:'+((i-from)*55+40)+'ms">'+
        esc(flow.actions[i].text)+"</button>";
   }
   box.insertAdjacentHTML("beforeend", h);
@@ -857,16 +902,20 @@ after.addEventListener("click",function(e){
 
 var PROMPT=
 "あなたは習慣設計のコーチです。続かないのは意志ではなく設計の問題だと知っています。\n"+
-"ユーザーが身につけたいことを、1分以内で必ず終わる最小行動に割ってください。\n"+
-"準備・道具・場所の移動が要らないこと。「5分」「10回」など1分を超える提案は禁止。\n"+
+"1分にするとは、短くやることではありません。断る理由が消えるところまで\n"+
+"ハードルを落とすことです。やる手前の一手だけを取り出してください。\n"+
+"（道具に触るだけ／開くだけ／履くだけ／出しておくだけ／構えをつくるだけ／\n"+
+"　一行だけ／一音だけ／始めて10秒でやめる／目に入る所に置くだけ）\n"+
+"「5分」「10回」など1分を超える提案は禁止。似た案を言い換えて並べるのも禁止。\n"+
 "それぞれに、すでに毎日やっている行動への接続点（その直後に差し込める具体的な場面）を付けてください。\n"+
 "誇張・励まし口調・絵文字は禁止。淡々と書くこと。\n\n";
 function promptFor(t){
   return PROMPT+"ユーザーが身につけたいこと: 「"+t+"」\n\n"+
   "次の形のJSONだけを返してください（説明文は不要）:\n"+
   '{"actions":[{"text":"1分で終わる具体的な行動。18文字以内"}],"anchors":["すでに毎日やっている行動。12文字以内、「〜したら」「〜の前に」の形"]}\n'+
-  "actionsは6つ。ただし似た案を並べず、削る方向を変えること："+
-  "時間を削る／回数を削る／準備だけにする／姿勢や場所だけにする／一部分だけにする／道具に触れるだけにする。\n"+
+  "actionsは6つ。落とし方をすべて変えること："+
+  "道具に触れるだけ／開くか身につけるだけ／目に入る所に置くだけ／構えや場所だけ／"+
+  "ほんの一部だけ／始めてすぐやめる。\n"+
   "anchorsは5つ。すべて日本語。";
 }
 

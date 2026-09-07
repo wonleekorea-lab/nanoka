@@ -677,10 +677,23 @@ if(window.matchMedia){
   var mq=window.matchMedia("(prefers-color-scheme: dark)");
   (mq.addEventListener ? mq.addEventListener.bind(mq,"change") : mq.addListener.bind(mq))(washi);
 }
-requestAnimationFrame(function(){
-  pager.scrollLeft=pager.clientWidth;   /* 中央（今日）から始める */
+/* 中央（今日）から始める。フォントの読み込みで再レイアウトが入ると
+   scroll-snap が先頭（登録）へ戻してしまうので、指が触れるまで何度か置き直す。 */
+var touched=false;
+function center(){
+  if(touched) return;
+  if(!pager.clientWidth) return;
+  pager.scrollLeft=pager.clientWidth;
   setDots(1);
+}
+["pointerdown","touchstart","wheel","keydown"].forEach(function(ev){
+  window.addEventListener(ev,function(){ touched=true; },{passive:true});
 });
+center();
+requestAnimationFrame(center);
+window.addEventListener("load",center);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(center).catch(function(){});
+[60,200,500,900].forEach(function(ms){ setTimeout(center, ms); });
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){
     navigator.serviceWorker.register("./sw.js").catch(function(){});

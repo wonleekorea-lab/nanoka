@@ -29,7 +29,6 @@
   --sumi3:#A69F8E;
   --lit:#8A5410;
   --bloom:rgba(232,166,64,.20);
-  --bloom-soft:rgba(232,166,64,.13);
   --bloom-cell:rgba(226,155,48,.78);
   --fiber:rgba(120,108,84,.055);
   --body:"Zen Kaku Gothic New",'Hiragino Sans',system-ui,sans-serif;
@@ -46,7 +45,6 @@
     --sumi3:#6A6454;
     --lit:#F3C57C;
     --bloom:rgba(240,186,104,.30);
-    --bloom-soft:rgba(240,186,104,.10);
     --bloom-cell:rgba(240,186,104,.62);
     --fiber:rgba(228,214,186,.032);
   }
@@ -54,8 +52,7 @@
 :root[data-theme="dark"]{
   --paper:#14120E; --sheet:#1D1A15; --edge:#2C2820; --rule:#3A342B;
   --sumi:#EFE9DB; --sumi2:#9B9483; --sumi3:#6A6454; --lit:#F3C57C;
-  --bloom:rgba(240,186,104,.30); --bloom-soft:rgba(240,186,104,.10);
-  --bloom-cell:rgba(240,186,104,.62);
+  --bloom:rgba(240,186,104,.30); --bloom-cell:rgba(240,186,104,.62);
   --fiber:rgba(228,214,186,.032);
 }
 
@@ -70,120 +67,144 @@ body{
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
 :focus-visible{outline:1.5px solid var(--lit);outline-offset:4px;border-radius:2px}
 
+/* 周辺の言葉は小文字の英語で、小さく置く */
+.en{
+  font-family:ui-sans-serif,-apple-system,"Helvetica Neue",sans-serif;
+  text-transform:lowercase; letter-spacing:.16em; font-weight:400;
+}
+
 /* ── 三面 ────────────────────────────────────────────── */
 .pager{
   display:flex; height:100dvh; overflow-x:auto; overflow-y:hidden;
-  scroll-snap-type:x mandatory; overscroll-behavior-x:contain; scrollbar-width:none;
+  scroll-snap-type:x mandatory; overscroll-behavior:contain; scrollbar-width:none;
 }
 .pager::-webkit-scrollbar{display:none}
 .pane{
-  flex:0 0 100%; min-width:100%; height:100dvh; scroll-snap-align:center;
-  display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  flex:0 0 100%; min-width:100%; height:100dvh;
+  scroll-snap-align:center; scroll-snap-stop:always;
+  display:flex; flex-direction:column;
 }
-.mid{justify-content:center; padding:0 26px}
-.mid > *{max-width:420px; width:100%; margin:0 auto}
+/* 横だけの面は縦を持たせない。縦に取られると横スワイプが渋る。 */
+#pane-new, #pane-today{overflow:hidden; touch-action:pan-x}
+#pane-dash{overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y}
+#seed{touch-action:auto}
+
+.mid{justify-content:center; padding:0 30px}
+.mid > .in{max-width:400px; width:100%; margin:0 auto}
 
 /* ── 今日の三行 ──────────────────────────────────────── */
-.lines{display:flex;flex-direction:column;gap:30px}
-.line{position:relative;display:block;width:100%;text-align:left;padding:8px 0 0}
+#pane-today .in{
+  display:flex; flex-direction:column;
+  height:min(74dvh, 620px);
+  padding-top:env(safe-area-inset-top);
+}
+.lines{flex:1; display:flex; flex-direction:column; justify-content:space-evenly}
+.line{position:relative;display:block;width:100%;text-align:left;padding:6px 0}
 .line .glow{
-  position:absolute; left:-40px; right:-40px; top:-34px; bottom:-16px; pointer-events:none;
-  background:radial-gradient(52% 58% at 50% 52%, var(--bloom), transparent 78%);
+  position:absolute; left:-44px; right:-44px; top:-40px; bottom:-24px; pointer-events:none;
+  background:radial-gradient(52% 58% at 50% 50%, var(--bloom), transparent 78%);
   opacity:0; transition:opacity 1.1s ease;
 }
 .line.on .glow{opacity:1}
 .line .txt{
-  position:relative; display:block; font-size:19px; font-weight:500; line-height:1.55;
+  position:relative; display:block; font-size:21px; font-weight:500; line-height:1.55;
   letter-spacing:.005em; color:var(--sumi); transition:color .7s ease; text-wrap:pretty;
 }
 .line.on .txt{color:var(--lit)}
-.when{color:var(--sumi3);font-size:13px;margin-left:.7em;font-weight:400}
+.line .when{
+  position:relative; display:block; margin-top:7px;
+  font-size:12.5px; line-height:1.5; color:var(--sumi3); font-weight:400;
+}
 .line.on .when{color:var(--sumi2)}
-.wick{position:relative;display:flex;gap:5px;margin-top:14px}
+.wick{position:relative;display:flex;gap:6px;margin-top:20px}
 .wick i{flex:1;height:2px;border-radius:1px;background:var(--rule);
   transition:background .6s ease, box-shadow .6s ease}
 .wick i.f{background:var(--lit);box-shadow:0 0 9px var(--bloom)}
 .wick i.now{animation:kindle 1s ease both}
 @keyframes kindle{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.02)}100%{transform:none;opacity:1}}
-.blank{height:2px;background:var(--rule);opacity:.42;margin:30px 0 0}
+.blank{height:2px;background:var(--rule);opacity:.4}
 
+.foot{height:44px;display:flex;align-items:center;justify-content:center}
+.tip{color:var(--sumi3);font-size:11px}
 .nudge{
-  position:absolute; right:16px; top:50%; transform:translateY(-50%);
-  color:var(--sumi3); font-size:26px; line-height:1; animation:sway 2.6s ease-in-out infinite;
+  position:absolute; left:6px; top:50%; transform:translateY(-50%);
+  color:var(--sumi3); font-size:30px; line-height:1; animation:sway 2.8s ease-in-out infinite;
 }
-@keyframes sway{0%,100%{transform:translate(0,-50%);opacity:.35}50%{transform:translate(6px,-50%);opacity:.8}}
-.tip{margin-top:38px;color:var(--sumi3);font-size:12.5px;letter-spacing:.14em;text-align:center}
+@keyframes sway{0%,100%{transform:translate(0,-50%);opacity:.3}50%{transform:translate(-7px,-50%);opacity:.75}}
 
 /* ── 登録 ────────────────────────────────────────────── */
 #seed{
   width:100%; background:transparent; border:0; border-bottom:2px solid var(--rule);
-  color:var(--sumi); font-family:var(--body); font-size:20px; line-height:1.55;
-  padding:6px 0 12px; resize:none;
+  color:var(--sumi); font-family:var(--body); font-size:21px; line-height:1.55;
+  padding:6px 0 14px; resize:none;
 }
-#seed::placeholder{color:var(--sumi3)}
+#seed::placeholder{color:var(--sumi3);font-size:19px}
 #seed:focus{outline:none;border-bottom-color:var(--lit)}
-#seed:disabled{opacity:.45}
-.cands{margin-top:26px;display:flex;flex-direction:column}
+#seed:disabled{opacity:.5}
+.cands{margin-top:14px;display:flex;flex-direction:column}
 .cand{
-  display:block;width:100%;text-align:left;font-size:16px;color:var(--sumi2);
-  padding:13px 0;border-bottom:1px solid var(--edge);line-height:1.5;
+  display:block;width:100%;text-align:left;font-size:16.5px;color:var(--sumi2);
+  padding:15px 0;border-bottom:1px solid var(--edge);line-height:1.5;
 }
 .cand:first-child{border-top:1px solid var(--edge)}
+.cand small{display:block;margin-top:4px;font-size:12px;color:var(--sumi3)}
 .cand:hover{color:var(--lit)}
-.wait{margin-top:26px;display:flex;align-items:center;gap:9px;color:var(--sumi3);font-size:13px}
+.wait{margin-top:30px;display:flex;align-items:center;gap:10px;color:var(--sumi3);font-size:11px}
 .wait i{width:6px;height:6px;border-radius:50%;background:var(--lit);animation:breathe 1.6s ease-in-out infinite}
 @keyframes breathe{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
-.say{margin-top:22px;color:var(--sumi3);font-size:12.5px;letter-spacing:.1em}
+.say{margin-top:30px;color:var(--sumi3);font-size:11px}
 
 /* ── 記録 ────────────────────────────────────────────── */
-#pane-dash{padding:0 24px}
-#pane-dash > .in{max-width:420px;width:100%;margin:0 auto;
-  padding-top:calc(34px + env(safe-area-inset-top)); padding-bottom:120px}
-.today{font-size:17px;font-weight:700;letter-spacing:.01em}
-.sub{color:var(--sumi3);font-size:11.5px;letter-spacing:.12em;font-variant-numeric:tabular-nums}
-.nums{display:flex;gap:26px;margin-top:20px}
-.nums div{line-height:1.2}
-.nums b{display:block;font-size:22px;font-weight:700;color:var(--lit);font-variant-numeric:tabular-nums}
-.nums span{font-size:11px;color:var(--sumi3);letter-spacing:.08em}
+#pane-dash{padding:0 28px}
+#pane-dash > .in{max-width:400px;width:100%;margin:0 auto;
+  padding-top:calc(46px + env(safe-area-inset-top)); padding-bottom:130px}
+.today{font-size:19px;font-weight:700;letter-spacing:.01em}
+.sub{margin-top:2px;color:var(--sumi3);font-size:10.5px;font-variant-numeric:tabular-nums}
+.nums{display:flex;gap:30px;margin-top:30px}
+.nums div{line-height:1.25}
+.nums b{display:block;font-size:24px;font-weight:700;color:var(--lit);font-variant-numeric:tabular-nums}
+.nums span{font-size:10px;color:var(--sumi3)}
 .mark{
-  margin:34px 0 12px;color:var(--sumi3);font-size:11px;letter-spacing:.18em;
-  display:flex;align-items:center;gap:10px;
+  margin:46px 0 16px;color:var(--sumi3);font-size:10.5px;
+  display:flex;align-items:center;gap:12px;
 }
 .mark::after{content:"";flex:1;height:1px;background:var(--edge)}
-.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .cell{position:relative;aspect-ratio:1;border-radius:2px;background:var(--sheet);border:1px solid var(--edge)}
 .cell .f{position:absolute;inset:-2px;border-radius:3px;
   background:radial-gradient(62% 62% at 50% 50%, var(--bloom-cell), transparent 76%)}
 .cell.today{border-color:var(--sumi3)}
-.relic{display:flex;gap:12px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--edge)}
+.relic{display:flex;gap:14px;align-items:baseline;padding:15px 0;border-bottom:1px solid var(--edge)}
 .relic .d{width:7px;height:7px;border-radius:50%;background:var(--lit);
   box-shadow:0 0 8px var(--bloom);flex:none;transform:translateY(-1px)}
-.relic p{margin:0;font-size:15px;line-height:1.5}
-.relic time{margin-left:auto;color:var(--sumi3);font-size:11px;font-variant-numeric:tabular-nums;flex:none}
-.none{color:var(--sumi3);font-size:13px;line-height:1.9}
+.relic p{margin:0;font-size:15.5px;line-height:1.5}
+.relic time{margin-left:auto;color:var(--sumi3);font-size:10.5px;font-variant-numeric:tabular-nums;flex:none}
+.none{color:var(--sumi3);font-size:11px}
 
-.set label{display:block;color:var(--sumi3);font-size:11px;letter-spacing:.12em;margin-bottom:7px}
+.set label{display:block;color:var(--sumi3);font-size:10.5px;margin-bottom:9px}
 .set input,.set textarea{
   width:100%;background:var(--sheet);border:1px solid var(--edge);border-radius:2px;
-  color:var(--sumi);font-family:var(--body);font-size:14px;padding:10px 11px;resize:none;
+  color:var(--sumi);font-family:var(--body);font-size:14px;padding:11px 12px;resize:none;
 }
 .set input:focus,.set textarea:focus{outline:none;border-color:var(--lit)}
-.set .b{margin-top:10px;display:flex;gap:8px}
+.set .b{margin-top:12px;display:flex;gap:9px}
 .set .b button{
-  flex:1;border:1px solid var(--edge);border-radius:2px;padding:10px;
-  font-size:13px;color:var(--sumi2);letter-spacing:.06em;
+  flex:1;border:1px solid var(--edge);border-radius:2px;padding:11px;
+  font-size:11px;color:var(--sumi2);
 }
 .set .b button:hover{border-color:var(--lit);color:var(--lit)}
-.set p{margin:10px 0 0;color:var(--sumi3);font-size:11.5px;line-height:1.75}
-.set .box{margin-top:14px}
+.set p{margin:12px 0 0;color:var(--sumi3);font-size:11px;line-height:1.7;letter-spacing:.04em}
+.set .box{margin-top:26px}
 
-/* ── 位置 ────────────────────────────────────────────── */
+/* ── 位置（点を押しても移れる）─────────────────────── */
 .dots{
-  position:fixed;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));
-  display:flex;justify-content:center;gap:9px;pointer-events:none;z-index:5;
+  position:fixed;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom));
+  display:flex;justify-content:center;z-index:6;
 }
-.dots i{width:5px;height:5px;border-radius:50%;background:var(--rule);transition:background .3s,transform .3s}
-.dots i.on{background:var(--lit);transform:scale(1.25)}
+.dots button{padding:14px 11px;line-height:0}
+.dots span{display:block;width:6px;height:6px;border-radius:50%;background:var(--rule);
+  transition:background .3s, transform .3s}
+.dots button.on span{background:var(--lit);transform:scale(1.3)}
 
 /* ── 演出 ────────────────────────────────────────────── */
 #whisper{
@@ -214,20 +235,29 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   22%{opacity:1;transform:none} 66%{opacity:1;transform:translateY(-8px)}
   100%{opacity:0;transform:translateY(-42px)}
 }
+
+/* ── 直す ────────────────────────────────────────────── */
 .sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.34);display:none}
 .sheet-bg.on{display:block;animation:ritein .2s ease both}
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:452px;margin:0 auto;display:none;
   background:var(--sheet);border-top:1px solid var(--edge);border-radius:10px 10px 0 0;
-  padding:22px 24px calc(26px + env(safe-area-inset-bottom));
+  padding:26px 26px calc(28px + env(safe-area-inset-bottom));
 }
 .sheet.on{display:block;animation:up .24s cubic-bezier(.2,.8,.3,1) both}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
-.sheet p{margin:0 0 18px;font-size:16px;line-height:1.5}
-.sheet .b{display:flex;gap:10px}
-.sheet .b button{flex:1;border:1px solid var(--edge);border-radius:2px;padding:12px;
-  font-size:14px;letter-spacing:.1em;color:var(--sumi2)}
-.sheet .b button.go{border-color:var(--lit);color:var(--lit)}
+.sheet label{display:block;color:var(--sumi3);font-size:10.5px;margin:0 0 8px}
+.sheet .f2{margin-top:20px}
+.sheet input{
+  width:100%;background:transparent;border:0;border-bottom:1px solid var(--edge);
+  color:var(--sumi);font-family:var(--body);font-size:18px;padding:4px 0 10px;
+}
+.sheet input.sm{font-size:14px;color:var(--sumi2)}
+.sheet input:focus{outline:none;border-bottom-color:var(--lit)}
+.sheet .b{display:flex;gap:10px;margin-top:30px}
+.sheet .b button{flex:1;border:1px solid var(--edge);border-radius:2px;padding:13px;
+  font-size:11px;color:var(--sumi2)}
+.sheet .b button.keep{border-color:var(--lit);color:var(--lit)}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
@@ -241,17 +271,17 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
   <!-- 登録 -->
   <section class="pane mid" id="pane-new">
-    <div>
-      <textarea id="seed" rows="2" placeholder="身につけたいこと" autocomplete="off"></textarea>
+    <div class="in">
+      <textarea id="seed" rows="2" placeholder="one small thing" autocomplete="off"></textarea>
       <div id="after"></div>
     </div>
   </section>
 
   <!-- 今日 -->
   <section class="pane mid" id="pane-today">
-    <div style="position:relative">
+    <div class="in">
       <div class="lines" id="lines"></div>
-      <div id="hint"></div>
+      <div class="foot" id="foot"></div>
     </div>
   </section>
 
@@ -259,33 +289,33 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   <section class="pane" id="pane-dash">
     <div class="in">
       <div class="today" id="dToday">—</div>
-      <div class="sub" id="dSub">—</div>
+      <div class="sub en" id="dSub">—</div>
       <div class="nums">
-        <div><b id="nLit">0</b><span>灯</span></div>
-        <div><b id="nPure">0</b><span>浄</span></div>
-        <div><b id="nRun">0</b><span>連</span></div>
+        <div><b id="nLit">0</b><span class="en">lit</span></div>
+        <div><b id="nPure">0</b><span class="en">released</span></div>
+        <div><b id="nRun">0</b><span class="en">in a row</span></div>
       </div>
 
-      <div class="mark">日々</div>
+      <div class="mark en">days</div>
       <div class="grid" id="grid"></div>
 
-      <div class="mark">浄めたもの</div>
+      <div class="mark en">released</div>
       <div id="relics"></div>
 
-      <div class="mark">設定</div>
+      <div class="mark en">settings</div>
       <div class="set">
-        <label for="keyIn">ANTHROPIC APIキー</label>
+        <label class="en" for="keyIn">api key</label>
         <input type="password" id="keyIn" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
-        <div class="b"><button id="keySave">保存</button></div>
-        <p id="keyNote"></p>
+        <div class="b"><button class="en" id="keySave">save</button></div>
+        <p class="en" id="keyNote"></p>
         <div class="box">
-          <label for="ioBox">記録の持ち運び</label>
+          <label class="en" for="ioBox">carry over</label>
           <textarea id="ioBox" rows="3"></textarea>
           <div class="b">
-            <button id="ioOut">書き出す</button>
-            <button id="ioIn">読み込む</button>
+            <button class="en" id="ioOut">copy out</button>
+            <button class="en" id="ioIn">bring in</button>
           </div>
-          <p id="ioNote">端末を移すときに使います。</p>
+          <p class="en" id="ioNote">for moving to another phone.</p>
         </div>
       </div>
     </div>
@@ -293,16 +323,26 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
 </div>
 
-<nav class="dots" id="dots" aria-hidden="true"><i></i><i></i><i></i></nav>
+<nav class="dots" id="dots">
+  <button data-go="0" aria-label="new"><span></span></button>
+  <button data-go="1" aria-label="today"><span></span></button>
+  <button data-go="2" aria-label="days"><span></span></button>
+</nav>
+
 <div id="whisper"></div>
 <div id="rite"><div class="up" id="riteText"></div></div>
 
 <div class="sheet-bg" id="sheetBg"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true">
-  <p id="sheetText">—</p>
+  <label class="en" for="eWhat">what</label>
+  <input type="text" id="eWhat" autocomplete="off">
+  <div class="f2">
+    <label class="en" for="eWhen">after what</label>
+    <input type="text" id="eWhen" class="sm" autocomplete="off" placeholder="—">
+  </div>
   <div class="b">
-    <button id="sheetNo">もどる</button>
-    <button id="sheetYes" class="go">やめる</button>
+    <button class="en keep" id="eSave">save</button>
+    <button class="en" id="eDrop">let go</button>
   </div>
 </div>
 
@@ -340,6 +380,7 @@ function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
 }
 function apiKey(){ try{ return localStorage.getItem(KEYK)||""; }catch(e){ return ""; } }
+function find(id){ var q=null; state.quests.forEach(function(x){ if(x.id===id) q=x; }); return q; }
 
 /* ── 日付 ─────────────────────────────── */
 function key(d){
@@ -348,7 +389,8 @@ function key(d){
 }
 function toDate(k){ var p=String(k).split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function gap(a,b){ return Math.round((toDate(a)-toDate(b))/86400000); }
-var WD=["日","月","火","水","木","金","土"];
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 
@@ -362,8 +404,8 @@ function lineHtml(q, justNow){
   }
   return '<button class="line'+(on?" on":"")+'" data-id="'+q.id+'" aria-pressed="'+on+'">'+
     '<span class="glow"></span>'+
-    '<span class="txt">'+esc(q.action)+
-      (q.anchor?'<span class="when">'+esc(q.anchor)+"</span>":"")+"</span>"+
+    '<span class="txt">'+esc(q.action)+"</span>"+
+    (q.anchor?'<span class="when">'+esc(q.anchor)+"</span>":"")+
     '<span class="wick">'+w+"</span></button>";
 }
 function renderLines(justNowId){
@@ -372,16 +414,15 @@ function renderLines(justNowId){
   for(var i=state.quests.length;i<SLOTS;i++) h+='<div class="blank"></div>';
   document.getElementById("lines").innerHTML=h;
 
-  var hint=document.getElementById("hint");
-  if(!state.quests.length) hint.innerHTML='<div class="nudge">›</div>';
-  else if(!state.taught) hint.innerHTML='<div class="tip">ふれると灯る</div>';
-  else hint.innerHTML="";
+  var foot=document.getElementById("foot");
+  if(!state.quests.length) foot.innerHTML='<div class="nudge">&lsaquo;</div>';
+  else if(!state.taught) foot.innerHTML='<div class="tip en">touch to light · hold to change</div>';
+  else foot.innerHTML="";
 }
 
 /* ── 灯す ─────────────────────────────── */
 function kindle(id){
-  var q=null, t=key();
-  state.quests.forEach(function(x){ if(x.id===id) q=x; });
+  var q=find(id), t=key();
   if(!q || q.last===t) return;
 
   if(!q.last){ q.streak=1; }
@@ -413,55 +454,83 @@ function whisper(text){
   w.classList.remove("go"); void w.offsetWidth; w.classList.add("go");
 }
 
-/* 長押しでやめる。短いタップと取り違えないよう 520ms。 */
-var press=null, pressed=false, dropId=null;
+/* ── ふれる／押す ─────────────────────── */
+/* 短くふれたら灯る。押し続けると直せる。今日もう灯した行は、ふれれば直しに入る。 */
+var press=null, held=false, startY=0, moved=false;
 var lines=document.getElementById("lines");
 lines.addEventListener("pointerdown",function(e){
   var el=e.target.closest(".line"); if(!el) return;
-  pressed=false;
-  press=setTimeout(function(){ pressed=true; askDrop(el.getAttribute("data-id")); }, 520);
+  held=false; moved=false; startY=e.clientY;
+  press=setTimeout(function(){
+    held=true;
+    if(!moved) openEdit(el.getAttribute("data-id"));
+  }, 480);
+});
+lines.addEventListener("pointermove",function(e){
+  if(press===null) return;
+  if(Math.abs(e.clientY-startY)>10){ moved=true; clearTimeout(press); press=null; }
 });
 ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-  lines.addEventListener(ev,function(){ clearTimeout(press); });
+  lines.addEventListener(ev,function(){ clearTimeout(press); press=null; });
 });
 lines.addEventListener("click",function(e){
   var el=e.target.closest(".line"); if(!el) return;
-  if(pressed){ pressed=false; return; }
-  kindle(el.getAttribute("data-id"));
+  if(held){ held=false; return; }
+  var id=el.getAttribute("data-id"), q=find(id);
+  if(q && q.last===key()) openEdit(id);   /* 今日はもう灯した。押せば直せる。 */
+  else kindle(id);
 });
 
-function askDrop(id){
-  var q=null; state.quests.forEach(function(x){ if(x.id===id) q=x; });
-  if(!q) return;
-  dropId=id;
-  document.getElementById("sheetText").textContent=q.action;
-  document.getElementById("sheetBg").classList.add("on");
-  document.getElementById("sheet").classList.add("on");
+/* ── 直す ─────────────────────────────── */
+var editId=null, dropArmed=false;
+var sheet=document.getElementById("sheet"), sheetBg=document.getElementById("sheetBg");
+var eWhat=document.getElementById("eWhat"), eWhen=document.getElementById("eWhen");
+var eDrop=document.getElementById("eDrop");
+
+function openEdit(id){
+  var q=find(id); if(!q) return;
+  editId=id; dropArmed=false;
+  eDrop.textContent="let go";
+  eWhat.value=q.action||""; eWhen.value=q.anchor||"";
+  sheetBg.classList.add("on"); sheet.classList.add("on");
+  setTimeout(function(){ eWhat.focus(); }, 260);
 }
-function closeSheet(){
-  document.getElementById("sheetBg").classList.remove("on");
-  document.getElementById("sheet").classList.remove("on");
-  dropId=null;
+function closeEdit(){
+  sheetBg.classList.remove("on"); sheet.classList.remove("on");
+  editId=null; dropArmed=false;
 }
-document.getElementById("sheetNo").addEventListener("click",closeSheet);
-document.getElementById("sheetBg").addEventListener("click",closeSheet);
-document.getElementById("sheetYes").addEventListener("click",function(){
-  if(dropId){
-    state.quests=state.quests.filter(function(x){ return x.id!==dropId; });
-    save(); renderLines(); renderNew();
+sheetBg.addEventListener("click",closeEdit);
+document.getElementById("eSave").addEventListener("click",function(){
+  var q=find(editId);
+  if(q){
+    var t=eWhat.value.trim();
+    if(t){ q.action=t; q.title=t; }
+    q.anchor=eWhen.value.trim();
+    save(); renderLines();
   }
-  closeSheet();
+  closeEdit();
+});
+eDrop.addEventListener("click",function(){
+  if(!dropArmed){ dropArmed=true; eDrop.textContent="sure?"; return; }
+  var id=editId;
+  state.quests=state.quests.filter(function(x){ return x.id!==id; });
+  save(); renderLines(); renderNew();
+  closeEdit();
+});
+[eWhat,eWhen].forEach(function(el){
+  el.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ e.preventDefault(); document.getElementById("eSave").click(); }
+  });
 });
 
 /* ── 登録 ─────────────────────────────── */
 var seed=document.getElementById("seed"), after=document.getElementById("after");
-var lastQuest=null;
 
 function renderNew(){
   var full=state.quests.length>=SLOTS;
   seed.disabled=full;
-  seed.placeholder = full ? "いまは三つまで" : "身につけたいこと";
-  if(full){ after.innerHTML=""; lastQuest=null; }
+  seed.placeholder = full ? "three is enough" : "one small thing";
+  if(full){ after.innerHTML=""; }
 }
 
 function startQuest(text){
@@ -483,35 +552,33 @@ function commit(){
   if(!t || state.quests.length>=SLOTS) return;
   var q=startQuest(t);
   if(!q) return;
-  lastQuest=q;
   seed.value=""; seed.blur();
-  after.innerHTML='<div class="say">置いた</div>';
+  after.innerHTML='<div class="say en">kept</div>';
   go(1);
   if(apiKey()) suggest(q, t);
 }
 
 /* 鍵があるときだけ、あとから1分の形に言い直す案を並べる。無視してよい。 */
 function suggest(q, text){
-  after.innerHTML='<div class="wait"><i></i><span>1分に割っています</span></div>';
+  after.innerHTML='<div class="wait"><i></i><span class="en">making it smaller</span></div>';
   callClaude(promptFor(text)).then(function(d){
     var acts=(d && d.actions || []).slice(0,3).map(function(a){
       return typeof a==="string" ? {text:a,when:""}
            : {text:String(a.text||""), when:String(a.anchor||a.note||"")};
     }).filter(function(a){ return a.text; });
     if(!acts.length){ after.innerHTML=""; return; }
-    var h='<div class="cands">';
+    var h='<div class="say en" style="margin-top:26px">smaller</div><div class="cands">';
     acts.forEach(function(a,i){
       h+='<button class="cand" data-i="'+i+'">'+esc(a.text)+
-         (a.when?'<span class="when"> '+esc(a.when)+"</span>":"")+"</button>";
+         (a.when?"<small>"+esc(a.when)+"</small>":"")+"</button>";
     });
-    h+='</div><div class="say">ふれると置きかわる</div>';
+    h+="</div>";
     after.innerHTML=h;
     after.querySelectorAll(".cand").forEach(function(el){
       el.addEventListener("click",function(){
-        var a=acts[+el.getAttribute("data-i")];
-        var live=null; state.quests.forEach(function(x){ if(x.id===q.id) live=x; });
+        var a=acts[+el.getAttribute("data-i")], live=find(q.id);
         if(live){ live.action=a.text; live.anchor=a.when; live.title=a.text; save(); renderLines(); }
-        after.innerHTML='<div class="say">置きかえた</div>';
+        after.innerHTML='<div class="say en">kept</div>';
         go(1);
       });
     });
@@ -566,14 +633,14 @@ function callClaude(prompt){
 /* ── 記録 ─────────────────────────────── */
 function renderDash(){
   var d=new Date();
-  document.getElementById("dToday").textContent=(d.getMonth()+1)+"月"+d.getDate()+"日（"+WD[d.getDay()]+"）";
+  document.getElementById("dToday").textContent=MON[d.getMonth()]+" "+d.getDate()+", "+WD[d.getDay()];
   document.getElementById("dSub").textContent=key(d);
   document.getElementById("nLit").textContent=state.lit;
   document.getElementById("nPure").textContent=state.archive.length;
   var run=0; state.quests.forEach(function(q){ if(q.streak>run) run=q.streak; });
   document.getElementById("nRun").textContent=run;
 
-  /* 直近10週。今日が右下に来るよう、週の頭で切り上げる。 */
+  /* 直近10週。今日が最下段に来るよう、週の終わりで切り上げる。 */
   var t=key(), today=toDate(t), h="", i;
   var end=new Date(today); end.setDate(end.getDate() + (6 - end.getDay()));
   var start=new Date(end); start.setDate(start.getDate() - 69);
@@ -588,7 +655,7 @@ function renderDash(){
 
   var box=document.getElementById("relics");
   if(!state.archive.length){
-    box.innerHTML='<p class="none">七日ともし切ったものが、ここに移る。</p>';
+    box.innerHTML='<p class="none en">nothing yet.</p>';
   }else{
     var r="";
     state.archive.slice().reverse().forEach(function(a){
@@ -600,16 +667,55 @@ function renderDash(){
 }
 
 /* ── 三面の行き来 ─────────────────────── */
-var pager=document.getElementById("pager"), dots=document.getElementById("dots").children;
-function go(i){ pager.scrollTo({left:i*pager.clientWidth, behavior:"smooth"}); }
-function setDots(i){ for(var n=0;n<3;n++) dots[n].classList.toggle("on", n===i); }
+var pager=document.getElementById("pager");
+var dotBtns=document.getElementById("dots").children;
+var touched=false;
+/* scrollTo({behavior:"smooth"}) は scroll-snap-stop:always に打ち消されて動かない。
+   トゥイーンの間だけスナップを外し、自分で滑らせる。 */
+var tween=null, guard=null, dur=300;
+function land(to){
+  if(tween){ cancelAnimationFrame(tween); tween=null; }
+  pager.scrollLeft=to;
+  pager.style.scrollSnapType="";
+}
+function go(i){
+  touched=true;
+  var from=pager.scrollLeft, to=i*pager.clientWidth;
+  setDots(i);
+  if(Math.abs(to-from)<1) return;
+  if(tween) cancelAnimationFrame(tween);
+  clearTimeout(guard);
+  pager.style.scrollSnapType="none";
+  var t0=null;
+  function step(ts){
+    if(t0===null) t0=ts;
+    var k=Math.min(1,(ts-t0)/dur);
+    var e=k<0.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2;
+    pager.scrollLeft=from+(to-from)*e;
+    if(k<1) tween=requestAnimationFrame(step);
+    else land(to);
+  }
+  tween=requestAnimationFrame(step);
+  /* 画面が隠れていると rAF は止まる。滑らせられなくても必ず着地させる。 */
+  guard=setTimeout(function(){ land(to); }, dur+220);
+}
+function setDots(i){ for(var n=0;n<3;n++) dotBtns[n].classList.toggle("on", n===i); }
+for(var di=0; di<dotBtns.length; di++){
+  dotBtns[di].addEventListener("click",function(e){
+    go(+e.currentTarget.getAttribute("data-go"));
+  });
+}
+document.addEventListener("keydown",function(e){
+  if(sheet.classList.contains("on")) return;
+  if(document.activeElement===seed) return;
+  var i=Math.round(pager.scrollLeft/pager.clientWidth);
+  if(e.key==="ArrowLeft" && i>0) go(i-1);
+  if(e.key==="ArrowRight" && i<2) go(i+1);
+});
 var st=null;
 pager.addEventListener("scroll",function(){
   clearTimeout(st);
-  st=setTimeout(function(){
-    var i=Math.round(pager.scrollLeft/pager.clientWidth);
-    setDots(i);
-  },80);
+  st=setTimeout(function(){ setDots(Math.round(pager.scrollLeft/pager.clientWidth)); },70);
 });
 window.addEventListener("resize",function(){
   var i=Math.round(pager.scrollLeft/pager.clientWidth);
@@ -642,10 +748,10 @@ function washi(){
 /* ── 設定 ─────────────────────────────── */
 function reflectKey(){
   var has=!!apiKey();
-  document.getElementById("keyIn").placeholder = has ? "保存済み" : "sk-ant-…";
+  document.getElementById("keyIn").placeholder = has ? "saved" : "sk-ant-…";
   document.getElementById("keyNote").textContent = has
-    ? "投げたあと、1分の形に言い直す案が出ます。キーはこの端末にだけ置かれ、送り先はAnthropicのAPIだけです。空にして保存すると消えます。"
-    : "空でも使えます。入れると、投げたあとに1分の形へ言い直す案が出ます。";
+    ? "it stays on this phone. nothing but anthropic sees it. save it empty to forget it."
+    : "optional. with it, what you throw in comes back smaller.";
 }
 document.getElementById("keySave").addEventListener("click",function(){
   var el=document.getElementById("keyIn"), v=el.value.trim();
@@ -655,7 +761,7 @@ document.getElementById("keySave").addEventListener("click",function(){
 document.getElementById("ioOut").addEventListener("click",function(){
   var b=document.getElementById("ioBox");
   b.value=JSON.stringify(state); b.focus(); b.select();
-  document.getElementById("ioNote").textContent="控えて、移す先の同じ欄に貼ってください。";
+  document.getElementById("ioNote").textContent="hold it somewhere, paste it there.";
 });
 document.getElementById("ioIn").addEventListener("click",function(){
   var b=document.getElementById("ioBox"), t=b.value.trim();
@@ -665,9 +771,9 @@ document.getElementById("ioIn").addEventListener("click",function(){
     if(!o || !Array.isArray(o.quests)) throw 0;
     o.archive=o.archive||[]; o.lit=o.lit||0; o.days=o.days||{};
     state=o; save(); renderLines(); renderDash(); renderNew();
-    b.value=""; document.getElementById("ioNote").textContent="読み込みました。";
+    b.value=""; document.getElementById("ioNote").textContent="here they are.";
   }catch(e){
-    document.getElementById("ioNote").textContent="読み込めませんでした。";
+    document.getElementById("ioNote").textContent="that did not read. check it.";
   }
 });
 
@@ -679,10 +785,8 @@ if(window.matchMedia){
 }
 /* 中央（今日）から始める。フォントの読み込みで再レイアウトが入ると
    scroll-snap が先頭（登録）へ戻してしまうので、指が触れるまで何度か置き直す。 */
-var touched=false;
 function center(){
-  if(touched) return;
-  if(!pager.clientWidth) return;
+  if(touched || !pager.clientWidth) return;
   pager.scrollLeft=pager.clientWidth;
   setDots(1);
 }
@@ -694,6 +798,7 @@ requestAnimationFrame(center);
 window.addEventListener("load",center);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(center).catch(function(){});
 [60,200,500,900].forEach(function(ms){ setTimeout(center, ms); });
+
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){
     navigator.serviceWorker.register("./sw.js").catch(function(){});

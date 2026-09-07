@@ -1,6 +1,6 @@
 {
-  "name": "七日の灯 — 習慣を7日でともし切る",
-  "short_name": "七日の灯",
+  "name": "ember — seven days, then let it go",
+  "short_name": "ember",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

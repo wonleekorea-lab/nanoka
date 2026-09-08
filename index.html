@@ -107,7 +107,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .orblab{color:var(--sumi3);font-size:10px}
 #pane-dash{position:relative; overflow:hidden; touch-action:pan-x}
 .dscroll{height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  touch-action:pan-y; padding:0 28px}
+  touch-action:pan-x pan-y; padding:0 28px}
 .dscroll::-webkit-scrollbar{display:none}
 #dMain.off{transform:scale(.985)}
 #dNotes{padding:0 28px; justify-content:flex-start}
@@ -164,7 +164,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .listhead button{border:1px solid var(--edge);border-radius:999px;
   padding:7px 14px;font-size:10px;color:var(--sumi2)}
 .listhead button:hover{border-color:var(--lit);color:var(--lit)}
-.list{max-height:66dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.list{max-height:66dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
 .list::-webkit-scrollbar{display:none}
 .qrow{padding:15px 0;border-bottom:1px solid var(--edge)}
 .qrow .qt{font-size:16.5px;line-height:1.5;color:var(--sumi)}
@@ -228,19 +228,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .pull span{display:block;font-size:15px;margin-bottom:3px;animation:sway2 2.6s ease-in-out infinite}
 @keyframes sway2{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(4px);opacity:.9}}
 
-/* 背景をよぎる、すでにある一日 */
-.drift{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;
-  -webkit-mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent);
-  mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent)}
-.drift .lane{display:flex;gap:26px;width:max-content;white-space:nowrap;
-  color:var(--sumi3);font-size:15px;opacity:.13;
-  animation:drift var(--s) linear infinite}
-/* 書く場所だけは、流れの上に浮かせて読ませる。 */
-#entry .in::before{
-  content:"";position:absolute;inset:-40px -26px;z-index:-1;border-radius:40px;
-  background:radial-gradient(58% 46% at 50% 50%, var(--paper) 62%, transparent 100%);
-}
-@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* ── 記録された習慣（上に置く）─────────────────────── */
 .lifecard{position:relative;max-width:400px;width:100%;margin:0 auto}
@@ -382,8 +369,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
   <!-- 記入（上に、記録された習慣） -->
   <section class="pane" id="pane-new">
-    <div class="drift" id="drift" aria-hidden="true"></div>
-
     <div class="layer" id="wWrite">
       <div class="in">
         <div class="orbwrap" id="orbWrap">
@@ -516,7 +501,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
 var KEY="nanoka.v1", GOAL=7, SLOTS=3;
 
-/* ── すでにある一日。背景を流れ、くっつけ先の下敷きになる。 */
+/* ── すでにある一日。くっつけ先の下敷きとして、欄を開くたびに一つ出す。 */
 var HINTS=[
   "歯みがきのあと","顔を洗ったあと","シャワーのあと","コーヒーのあと","朝食のあと",
   "着替えたあと","家を出るまえ","駅に着いたあと","電車に乗ったあと","改札を出たあと",
@@ -982,7 +967,10 @@ function setMode(m){
   orbWrap.hidden = (m!=="orb");
   form.hidden = (m!=="form");
   if(m!=="form"){ actIn.blur(); ancIn.blur(); }
-  if(m==="form") setTimeout(function(){ actIn.focus(); }, 80);
+  if(m==="form"){
+    ancIn.placeholder = HINTS[Math.floor(Math.random()*HINTS.length)];
+    setTimeout(function(){ actIn.focus(); }, 80);
+  }
   if(m==="lives") renderLife();
 }
 orb.addEventListener("click",function(){ setMode("form"); });
@@ -1021,18 +1009,6 @@ function keep(){
   renderLines(); renderQueue(); renderEntry(); go(1);
 }
 
-/* 背景に、すでにある一日を流す */
-function drift(){
-  var box=document.getElementById("drift"), h="", n=HINTS.length;
-  var rows=[[],[],[],[],[],[]];
-  HINTS.forEach(function(t,i){ rows[i%6].push(t); });
-  var sp=["96s","124s","108s","140s","116s","132s"];
-  rows.forEach(function(items,i){
-    var row=items.concat(items).map(function(t){ return "<span>"+esc(t)+"</span>"; }).join("");
-    h+='<div class="lane" style="--s:'+sp[i]+';margin-top:'+(i?38:70)+'px">'+row+"</div>";
-  });
-  box.innerHTML=h;
-}
 
 /* ── 記録された習慣をめくる ───────────── */
 /* 見た人は端末に覚えておく。全員に会うまで、おなじ人は出てこない。 */
@@ -1063,6 +1039,8 @@ function nextLife(){ renderLife(); }
    速く払えば短い距離でも決まる。 */
 function swipey(pane, cfg){
   var y=0,x=0,t=0,id=null,on=false,ax="",moved=false,until=0;
+  /* setPointerCapture は使わない。捕まえるとブラウザから横の面送りを奪ってしまう。
+     指が要素の外へ出ても追えるように、動きと離しは窓で拾う。 */
   function reset(){ var el=cfg.layer(); if(el) el.style.transform=""; }
   /* 引いた直後に出るクリックだけを飲む。時間で切らないと、
      次の本物のタップまで食べてしまう。 */
@@ -1074,13 +1052,13 @@ function swipey(pane, cfg){
     on=true; ax=""; moved=false;
     y=e.clientY; x=e.clientX; t=Date.now(); id=e.pointerId;
   });
-  pane.addEventListener("pointermove",function(e){
+  window.addEventListener("pointermove",function(e){
     if(!on || (id!==null && e.pointerId!==id)) return;
     var dy=e.clientY-y, dx=e.clientX-x;
-    if(!ax && (Math.abs(dy)>5 || Math.abs(dx)>5)){
-      if(Math.abs(dy) > Math.abs(dx)*1.1){
+    if(!ax && (Math.abs(dy)>8 || Math.abs(dx)>8)){
+      /* 縦だとはっきり分かるときだけ引き取る。少しでも横に流れていたら面送りに譲る。 */
+      if(Math.abs(dy) > Math.abs(dx)*1.5){
         ax = cfg.allow(dy>0?1:-1, e.target) ? "y" : "skip";
-        if(ax==="y"){ try{ pane.setPointerCapture(id); }catch(err){} }
       }else ax="x";
     }
     if(ax!=="y") return;
@@ -1088,9 +1066,8 @@ function swipey(pane, cfg){
     var el=cfg.layer();
     if(el) el.style.transform="translateY("+(dy*0.32).toFixed(1)+"px)";
   });
-  pane.addEventListener("pointerup",function(e){
+  window.addEventListener("pointerup",function(e){
     if(!on) return; on=false;
-    try{ pane.releasePointerCapture(id); }catch(err){}
     reset();
     if(moved) until=Date.now()+350;
     if(ax!=="y") return;
@@ -1098,7 +1075,7 @@ function swipey(pane, cfg){
     if(dy>34 || (fling && dy>14)) cfg.down();
     else if(dy<-34 || (fling && dy<-14)) cfg.up();
   });
-  pane.addEventListener("pointercancel",function(){ on=false; reset(); });
+  window.addEventListener("pointercancel",function(){ on=false; reset(); });
   pane.addEventListener("wheel",function(e){
     if(Math.abs(e.deltaY)<24) return;
     var dir = e.deltaY<0 ? 1 : -1;
@@ -1329,7 +1306,7 @@ function washi(){
 }
 
 /* ── 起動 ─────────────────────────────── */
-renderLines(); renderDash(); renderEntry(); renderQueue(); renderDone(); drift(); washi();
+renderLines(); renderDash(); renderEntry(); renderQueue(); renderDone(); washi();
 renderLife();
 
 function center(){

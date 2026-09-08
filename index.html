@@ -38,6 +38,9 @@
 
 *{box-sizing:border-box}
 [hidden]{display:none !important}
+/* 指で掴む画面。文字選択と長押しメニューは邪魔になる。 */
+.pane,.layer,.lines,.dots{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
 html,body{height:100%}
 body{
   margin:0; background:var(--paper); color:var(--sumi);
@@ -81,7 +84,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 /* 押すところを、真ん中にひとつだけ置く。 */
 .orbwrap{display:flex;flex-direction:column;align-items:center;gap:18px}
 .orb{
-  position:relative; width:106px; height:106px; border-radius:50%;
+  position:relative; width:124px; height:124px; border-radius:50%;
   border:1px solid var(--rule);
   background:radial-gradient(64% 64% at 50% 56%, var(--sheet), transparent 72%);
   animation:orbbreathe 4.6s ease-in-out infinite;
@@ -198,13 +201,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .lifecard .who{color:var(--lit);font-size:11px;letter-spacing:.16em}
 .lifecard .what{color:var(--sumi3);font-size:10.5px;margin-top:4px}
 .lifecard .did{margin-top:20px;font-size:19px;line-height:1.7;color:var(--sumi);text-wrap:pretty}
-.lifecard .take{
-  margin-top:26px;border:1px solid var(--edge);border-radius:2px;
-  padding:12px 16px;font-size:13px;color:var(--sumi2);text-align:left;width:100%;
-}
-.lifecard .take b{display:block;color:var(--sumi3);font-size:9.5px;font-weight:400;
-  letter-spacing:.16em;margin-bottom:6px}
-.lifecard .take:hover{border-color:var(--lit);color:var(--hot);box-shadow:0 0 20px var(--bloom)}
 .lifecard.flip{animation:deal .5s cubic-bezier(.2,.8,.3,1) both}
 @keyframes deal{
   0%{opacity:0;transform:translateY(-34px) rotate(-1.2deg)}
@@ -367,7 +363,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
       <div class="in">
         <span class="lifeglow"></span>
         <div class="lifecard" id="lifecard"></div>
-        <div class="pull en"><span>↑</span>swipe up to write</div>
+        <div class="pull en"><span>↑</span>swipe up to write · pull down for the next</div>
       </div>
     </div>
   </section>
@@ -720,7 +716,7 @@ function setMode(m){
   if(m==="lives") renderLife();
 }
 orb.addEventListener("click",function(){
-  if(state.quests.length>=SLOTS) return;
+  if(state.quests.length>=SLOTS){ go(1); return; }   /* 満杯なら、今の三つを見に行く */
   setMode("form");
 });
 function renderEntry(){
@@ -787,8 +783,7 @@ function renderLife(){
   var c=document.getElementById("lifecard");
   c.innerHTML='<div class="who en">'+esc(L[0])+"</div>"+
     '<div class="what">'+esc(L[1])+"</div>"+
-    '<div class="did">'+esc(L[2])+"</div>"+
-    '<button class="take" data-take="'+esc(L[3])+'"><b class="en">one minute of it</b>'+esc(L[3])+"</button>";
+    '<div class="did">'+esc(L[2])+"</div>";
   c.classList.remove("flip"); void c.offsetWidth; c.classList.add("flip");
 }
 function nextLife(){
@@ -796,48 +791,53 @@ function nextLife(){
   if(lifeAt % lifeOrder.length===0) shuffleLives();
   renderLife();
 }
-document.getElementById("lifecard").addEventListener("click",function(e){
-  var t=e.target.closest("[data-take]");
-  if(!t) return;
-  actIn.value=t.getAttribute("data-take");
-  setMode("form");
-  ready();
-});
-
 /* 下へ引くと記録が落ちてくる。上へ払うと書く場所に戻る。
    スクロールに任せるとスナップと喧嘩して渋いので、指の動きをそのまま面に渡す。 */
 var pane=document.getElementById("pane-new");
-var gy=0, gx=0, gon=false, gaxis="";
+var gy=0, gx=0, gt=0, gid=null, gon=false, gaxis="", swallow=false;
 function layer(){ return mode==="lives" ? wLives : wWrite; }
 function drag(px){ layer().style.transform = px ? "translateY("+px.toFixed(1)+"px)" : ""; }
 
+/* 引いたあとに押した扱いにならないよう、その一回だけ飲み込む。 */
+pane.addEventListener("click",function(e){
+  if(swallow){ swallow=false; e.stopPropagation(); e.preventDefault(); }
+},true);
+
 pane.addEventListener("pointerdown",function(e){
-  if(e.target.closest("input,textarea,button,a")) return;
-  gon=true; gaxis=""; gy=e.clientY; gx=e.clientX;
+  if(e.target.closest("input,textarea")) return;
+  gon=true; gaxis=""; swallow=false;
+  gy=e.clientY; gx=e.clientX; gt=Date.now(); gid=e.pointerId;
 });
 pane.addEventListener("pointermove",function(e){
-  if(!gon) return;
+  if(!gon || (gid!==null && e.pointerId!==gid)) return;
   var dy=e.clientY-gy, dx=e.clientX-gx;
-  if(!gaxis && (Math.abs(dy)>6 || Math.abs(dx)>6)) gaxis = Math.abs(dy)>Math.abs(dx) ? "y" : "x";
+  if(!gaxis && (Math.abs(dy)>5 || Math.abs(dx)>5)){
+    gaxis = Math.abs(dy) > Math.abs(dx)*1.1 ? "y" : "x";
+    /* 縦と決まってから捕まえる。先に捕まえると横の面送りを邪魔する。 */
+    if(gaxis==="y"){ try{ pane.setPointerCapture(gid); }catch(err){} }
+  }
   if(gaxis!=="y") return;
-  var pull = mode==="lives" ? dy : Math.max(dy, -30);
-  drag(pull*0.3);                                  /* ゴムのように少しだけ付いてくる */
+  if(Math.abs(dy)>10) swallow=true;
+  var pull = mode==="lives" ? dy : Math.max(dy, -26);
+  drag(pull*0.32);                                 /* ゴムのように少しだけ付いてくる */
 });
-["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-  pane.addEventListener(ev,function(e){
-    if(!gon) return;
-    gon=false;
-    var dy=(e.clientY||gy)-gy;
-    drag(0);
-    if(gaxis!=="y") return;
-    if(mode==="lives"){
-      if(dy>44) nextLife();
-      else if(dy<-44) setMode(backTo);
-    }else if(dy>52){
-      setMode("lives");
-    }
-  });
-});
+function settle(e){
+  if(!gon) return;
+  gon=false;
+  try{ pane.releasePointerCapture(gid); }catch(err){}
+  var dy=((e && e.clientY) || gy)-gy, dt=Math.max(1, Date.now()-gt), v=dy/dt;
+  drag(0);
+  if(gaxis!=="y") return;
+  var fling=Math.abs(v)>0.4;                       /* 速ければ短くても決める */
+  if(mode==="lives"){
+    if(dy>34 || (fling && dy>14)) nextLife();
+    else if(dy<-34 || (fling && dy<-14)) setMode(backTo);
+  }else if(dy>38 || (fling && dy>16)){
+    setMode("lives");
+  }
+}
+pane.addEventListener("pointerup",settle);
+pane.addEventListener("pointercancel",function(){ gon=false; drag(0); });
 pane.addEventListener("wheel",function(e){
   if(e.deltaY>-24) return;
   e.preventDefault();

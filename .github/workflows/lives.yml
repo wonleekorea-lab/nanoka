@@ -1,0 +1,77 @@
+name: lives
+
+# lives.json を検める。月に一度、Claude に人物を書き足させてPRを立てる。
+# 本番へは直接入れない。事実の確認は人がやる。
+on:
+  push:
+    paths:
+      - "lives.json"
+      - "scripts/**"
+      - ".github/workflows/lives.yml"
+  schedule:
+    - cron: "0 21 1 * *"      # 毎月1日 06:00 JST
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "書き足す人数"
+        default: "12"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check_lives.py
+
+  extend:
+    if: github.event_name != 'push'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 鍵があるか見る
+        id: gate
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "ANTHROPIC_API_KEY が未設定。追記はしない（検めだけ済んでいる）。"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.gate.outputs.skip == 'false'
+        run: pip install --quiet anthropic
+
+      - if: steps.gate.outputs.skip == 'false'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 scripts/extend_lives.py --count ${{ github.event.inputs.count || 12 }}
+
+      - if: steps.gate.outputs.skip == 'false'
+        run: python3 scripts/check_lives.py
+
+      - name: 増えていたらPRにする
+        if: steps.gate.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet; then
+            echo "変わっていない。PRは立てない。"
+            exit 0
+          fi
+          n=$(python3 -c "import json;print(len(json.load(open('lives.json'))['people']))")
+          b="lives/$(date +%Y%m%d)"
+          git config user.name "lives"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$b"
+          git commit -am "lives: 人物を書き足す（計${n}人・要確認）"
+          git push -u origin "$b"
+          gh pr create \
+            --title "lives: 人物を書き足す（計${n}人）" \
+            --body "$(printf 'Claudeに下書きさせ、scripts/check_lives.py を通したもの。\n\n**事実の確認はまだ。** 記録が残っている日課かどうかを見てから入れてください。\n怪しいものは行ごと消してからマージで構いません。')"

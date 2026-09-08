@@ -64,26 +64,26 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   scroll-snap-align:center; scroll-snap-stop:always;
   display:flex; flex-direction:column;
 }
-/* 横だけの面は縦を持たせない。縦に取られると横スワイプが渋る。 */
-#pane-new, #pane-today{overflow:hidden; touch-action:pan-x}
-#pane-new.scrolly{
+#pane-today{overflow:hidden; touch-action:pan-x; justify-content:center; padding:0 30px}
+/* 記入面は縦にも動く。上に偉人の記録、下に記入。 */
+#pane-new{
   overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;
-  justify-content:flex-start;
-  padding-top:calc(30px + env(safe-area-inset-top)); padding-bottom:130px;
+  scroll-snap-type:y mandatory; overscroll-behavior-y:contain; scrollbar-width:none;
 }
-#pane-dash{overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y}
-#seed{touch-action:auto}
-
-.mid{justify-content:center; padding:0 30px}
-.mid > .in{max-width:400px; width:100%; margin:0 auto}
+#pane-new::-webkit-scrollbar{display:none}
+#pane-dash{overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; padding:0 28px}
+.vsec{flex:0 0 100dvh; height:100dvh; scroll-snap-align:start; position:relative;
+  display:flex; flex-direction:column; justify-content:center; padding:0 30px}
+.vsec > .in{max-width:400px; width:100%; margin:0 auto; position:relative; z-index:1}
 
 /* ── 今日の三行 ──────────────────────────────────────── */
 #pane-today .in{
-  display:flex; flex-direction:column;
-  height:min(74dvh, 620px);
-  padding-top:env(safe-area-inset-top);
+  display:flex; flex-direction:column; max-width:400px; width:100%; margin:0 auto;
+  height:min(74dvh, 620px); padding-top:env(safe-area-inset-top);
+  justify-content:center;
 }
 .lines{flex:1; display:flex; flex-direction:column; justify-content:space-evenly}
+.row{position:relative}
 .line{position:relative;display:block;width:100%;text-align:left;padding:6px 0}
 .line .glow{
   position:absolute; left:-44px; right:-44px; top:-40px; bottom:-24px; pointer-events:none;
@@ -91,12 +91,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   opacity:0; transition:opacity 1.1s ease;
 }
 .line.on .glow{opacity:1}
-.line.on .txt{text-shadow:0 0 22px var(--bloom)}
 .line .txt{
   position:relative; display:block; font-size:21px; font-weight:500; line-height:1.55;
   letter-spacing:.005em; color:var(--sumi); transition:color .7s ease; text-wrap:pretty;
+  padding-right:46px;
 }
-.line.on .txt{color:var(--lit)}
+.line.on .txt{color:var(--lit);text-shadow:0 0 22px var(--bloom)}
 .line .when{
   position:relative; display:block; margin-top:7px;
   font-size:12.5px; line-height:1.5; color:var(--sumi3); font-weight:400;
@@ -110,6 +110,20 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 @keyframes kindle{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.02)}100%{transform:none;opacity:1}}
 .blank{height:2px;background:var(--rule);opacity:.4}
 
+/* 直す。灯すと取り違えないよう、離して置く。 */
+.fix{
+  position:absolute; right:-8px; top:0; padding:8px 8px 10px;
+  color:var(--sumi3); font-size:9.5px; line-height:1;
+}
+.fix:hover{color:var(--lit)}
+.undo{
+  display:flex; align-items:center; gap:10px; margin-top:12px;
+  color:var(--sumi3); font-size:10px;
+}
+.undo button{border:1px solid var(--edge);border-radius:999px;padding:6px 13px;
+  font-size:10px;color:var(--sumi2)}
+.undo button:hover{border-color:var(--lit);color:var(--lit)}
+
 .foot{height:44px;display:flex;align-items:center;justify-content:center}
 .tip{color:var(--sumi3);font-size:11px}
 .nudge{
@@ -118,135 +132,66 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 }
 @keyframes sway{0%,100%{transform:translate(0,-50%);opacity:.3}50%{transform:translate(-7px,-50%);opacity:.75}}
 
-/* ── 登録 ────────────────────────────────────────────── */
-#seed{
+/* ── 記入 ────────────────────────────────────────────── */
+.lab{display:block;color:var(--sumi3);font-size:10px;margin-bottom:9px}
+#actIn,#ancIn{
   width:100%; background:transparent; border:0; border-bottom:2px solid var(--rule);
-  color:var(--sumi); font-family:var(--body); font-size:21px; line-height:1.55;
-  padding:6px 0 14px; resize:none;
+  color:var(--sumi); font-family:var(--body); line-height:1.5; padding:5px 0 11px; resize:none;
 }
-#seed::placeholder{color:var(--sumi3);font-size:19px}
-#seed:focus{outline:none;border-bottom-color:var(--lit)}
-#seed:disabled{opacity:.5}
-.cands{margin-top:14px;display:flex;flex-direction:column}
-.cand{
-  display:block;width:100%;text-align:left;font-size:16.5px;color:var(--sumi2);
-  padding:15px 0;border-bottom:1px solid var(--edge);line-height:1.5;
-}
-.cand:first-child{border-top:1px solid var(--edge)}
-.cand small{display:block;margin-top:4px;font-size:12px;color:var(--sumi3)}
-.cand:hover{color:var(--lit)}
-.wait{margin-top:30px;display:flex;align-items:center;gap:10px;color:var(--sumi3);font-size:11px}
-.wait i{width:6px;height:6px;border-radius:50%;background:var(--lit);animation:breathe 1.6s ease-in-out infinite}
-@keyframes breathe{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
-.say{margin-top:30px;color:var(--sumi3);font-size:11px}
-.thrown{margin-top:26px;color:var(--sumi2);font-size:17px;line-height:1.5}
-/* 投げた言葉が、少し浮いて、どんと落ちて、砕けて横へ転がる */
-.blast{position:relative;margin-top:30px;text-align:center;font-size:22px;font-weight:500;
-  color:var(--sumi);line-height:1.5}
-.blast.go{animation:slam .46s cubic-bezier(.35,0,.7,1) both}
-@keyframes slam{
-  0%{transform:translateY(0)}
-  46%{transform:translateY(-20px)}          /* 浮く */
-  62%{transform:translateY(-16px)}          /* ためる */
-  76%{transform:translateY(9px) scaleY(.88) scaleX(1.06)}   /* 落ちて潰れる */
-  88%{transform:translateY(2px) scaleY(1.02)}
-  100%{transform:none}
-}
-.blast .c{display:inline-block;will-change:transform}
-.blast.go .c{animation:crumble .95s cubic-bezier(.18,.62,.3,1) both;animation-delay:calc(340ms + var(--d))}
-@keyframes crumble{
-  0%{transform:none;opacity:1}
-  14%{transform:translate(calc(var(--dx)*.30), -6px) rotate(calc(var(--rr)*.25))}  /* 跳ねる */
-  48%{transform:translate(calc(var(--dx)*.72), var(--dy)) rotate(calc(var(--rr)*.7));opacity:1}
-  100%{transform:translate(var(--dx), calc(var(--dy) + 26px)) rotate(var(--rr)) scale(.5);
-       opacity:0;filter:blur(1px)}                                                  /* 転がって消える */
-}
-.blast .flash{position:absolute;left:-70px;right:-70px;top:-70px;bottom:-70px;opacity:0;
-  pointer-events:none;background:radial-gradient(38% 46% at 50% 58%, var(--bloom), transparent 70%)}
-.blast.go .flash{animation:blastflash .6s ease-out both;animation-delay:320ms}
-@keyframes blastflash{0%{opacity:0}14%{opacity:1}100%{opacity:0}}
-/* 落ちた床。衝撃が横に走る。 */
-.blast .shock{position:absolute;left:0;right:0;top:60%;height:1px;opacity:0;pointer-events:none;
-  background:linear-gradient(90deg,transparent,var(--lit),transparent)}
-.blast.go .shock{animation:shock .5s cubic-bezier(.1,.8,.3,1) both;animation-delay:330ms}
-@keyframes shock{
-  0%{opacity:0;transform:scaleX(.05)}
-  20%{opacity:.9;transform:scaleX(.5)}
-  100%{opacity:0;transform:scaleX(1.6)}
-}
-
-/* 落ちた破片。左右にばらけて、跳ねて止まる。 */
-.shards{margin-top:20px;display:flex;flex-direction:column;gap:7px}
-.shard{
-  max-width:88%;text-align:left;
-  border:1px solid var(--edge);background:var(--sheet);border-radius:2px;
-  padding:11px 14px;line-height:1.4;color:var(--sumi2);
-  opacity:0;animation:tumble .62s cubic-bezier(.2,.9,.35,1) both;animation-delay:var(--d);
+#actIn{font-size:21px}
+#ancIn{font-size:16px;border-bottom-width:1px;color:var(--sumi2)}
+#actIn::placeholder,#ancIn::placeholder{color:var(--sumi3)}
+#actIn:focus,#ancIn:focus{outline:none;border-bottom-color:var(--lit)}
+.gap{margin-top:26px}
+.keep{
+  display:block; width:100%; margin-top:30px; border:1px solid var(--edge);
+  border-radius:2px; padding:13px; font-size:11px; color:var(--sumi2);
   transition:color .2s,border-color .2s,box-shadow .35s,background .2s;
 }
-@keyframes tumble{
-  0%{opacity:0;transform:translate(var(--x),-40px) rotate(calc(var(--r) * -2.4)) scale(.92)}
-  55%{opacity:1;transform:translate(var(--x),7px) rotate(calc(var(--r) * 1.25)) scale(1.015)}
-  74%{transform:translate(var(--x),-3px) rotate(calc(var(--r) * .85))}
-  100%{opacity:1;transform:translate(var(--x),0) rotate(var(--r))}
-}
-.shard:hover,.shard:active{color:var(--hot);border-color:var(--lit);background:var(--sheet2);
-  box-shadow:0 0 22px var(--bloom)}
+.keep.ready{color:var(--lit);border-color:var(--lit);box-shadow:0 0 20px var(--bloom-soft)}
+.keep:active{background:var(--sheet2)}
+.pull{margin-top:22px;text-align:center;color:var(--sumi3);font-size:10px;opacity:.75}
+.pull span{display:block;font-size:15px;margin-bottom:3px;animation:sway2 2.6s ease-in-out infinite}
+@keyframes sway2{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(4px);opacity:.9}}
 
-/* 左へ流れる瞬間。触れている間だけ止まる。 */
-.river{margin-top:18px}
-.lane{
-  display:flex;gap:8px;width:max-content;margin-bottom:9px;
-  animation:drift var(--s) linear infinite;
+/* 背景をよぎる、すでにある一日 */
+.drift{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 18%,#000 82%,transparent)}
+.drift .lane{display:flex;gap:26px;width:max-content;white-space:nowrap;
+  color:var(--sumi3);font-size:15px;opacity:.13;
+  animation:drift var(--s) linear infinite}
+/* 書く場所だけは、流れの上に浮かせて読ませる。 */
+#entry .in::before{
+  content:"";position:absolute;inset:-40px -26px;z-index:-1;border-radius:40px;
+  background:radial-gradient(58% 46% at 50% 50%, var(--paper) 62%, transparent 100%);
 }
-.river.hold .lane{animation-play-state:paused}
 @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.river-mask{position:relative;overflow:hidden;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);
-  mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
-.mchip.warm{color:var(--sumi);border-color:#3A3226;animation:emberpulse 4.5s ease-in-out infinite}
-@keyframes emberpulse{
-  0%,100%{box-shadow:0 0 10px var(--bloom-soft)}
-  50%{box-shadow:0 0 22px var(--bloom)}
+
+/* ── 記録された習慣（上に置く）─────────────────────── */
+.lifecard{position:relative;max-width:400px;width:100%;margin:0 auto}
+.lifecard .who{color:var(--lit);font-size:11px;letter-spacing:.16em}
+.lifecard .what{color:var(--sumi3);font-size:10.5px;margin-top:4px}
+.lifecard .did{margin-top:20px;font-size:19px;line-height:1.7;color:var(--sumi);text-wrap:pretty}
+.lifecard .take{
+  margin-top:26px;border:1px solid var(--edge);border-radius:2px;
+  padding:12px 16px;font-size:13px;color:var(--sumi2);text-align:left;width:100%;
 }
-.field{margin-top:20px}
-.cluster{position:relative;margin-bottom:24px}
-.cl-glow{
-  position:absolute;left:-34px;right:-24px;top:-18px;bottom:-12px;pointer-events:none;
-  background:radial-gradient(46% 62% at 26% 50%, var(--bloom-soft), transparent 74%);
+.lifecard .take b{display:block;color:var(--sumi3);font-size:9.5px;font-weight:400;
+  letter-spacing:.16em;margin-bottom:6px}
+.lifecard .take:hover{border-color:var(--lit);color:var(--hot);box-shadow:0 0 20px var(--bloom)}
+.lifecard.flip{animation:deal .5s cubic-bezier(.2,.8,.3,1) both}
+@keyframes deal{
+  0%{opacity:0;transform:translateY(-34px) rotate(-1.2deg)}
+  70%{opacity:1;transform:translateY(4px) rotate(.3deg)}
+  100%{opacity:1;transform:none}
 }
-.cluster.near .cl-glow{background:radial-gradient(46% 62% at 26% 50%, var(--bloom), transparent 74%);opacity:.5}
-.cl-name{position:relative;color:var(--sumi3);font-size:10px;margin-bottom:10px}
-.cluster.near .cl-name{color:var(--lit);opacity:.75}
-.cl-items{position:relative;display:flex;flex-wrap:wrap;gap:7px}
-.mchip{
-  border:1px solid var(--edge);background:var(--sheet);border-radius:999px;
-  padding:9px 14px;font-size:14px;line-height:1.35;color:var(--sumi2);
-  transition:color .2s,border-color .2s,background .2s,box-shadow .35s;
-}
-.cluster.near .mchip{color:var(--sumi)}
-.mchip:hover,.mchip:active{
-  color:var(--hot);border-color:var(--lit);background:var(--sheet2);
-  box-shadow:0 0 22px var(--bloom),0 0 3px var(--bloom-soft);
-}
-.mchip.own{border-style:dashed;color:var(--sumi3)}
-.own{
-  display:block;width:100%;margin-top:14px;background:transparent;
-  border:0;border-bottom:1px solid var(--edge);color:var(--sumi);
-  font-family:var(--body);font-size:18px;padding:5px 0 11px;
-}
-.own:focus{outline:none;border-bottom-color:var(--lit)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.chip{
-  border:1px solid var(--edge);border-radius:999px;padding:9px 15px;
-  font-size:14px;color:var(--sumi2);line-height:1.4;
-}
-.chip:hover{border-color:var(--lit);color:var(--lit)}
+.lifeglow{position:absolute;left:-40px;right:-40px;top:-60px;bottom:-60px;pointer-events:none;
+  background:radial-gradient(44% 50% at 40% 40%, var(--bloom-soft), transparent 72%)}
 
 /* ── 記録 ────────────────────────────────────────────── */
-#pane-dash{padding:0 28px}
 #pane-dash > .in{max-width:400px;width:100%;margin:0 auto;
-  padding-top:calc(46px + env(safe-area-inset-top)); padding-bottom:130px}
+  padding-top:calc(46px + env(safe-area-inset-top)); padding-bottom:140px}
 .today{font-size:19px;font-weight:700;letter-spacing:.01em}
 .sub{margin-top:2px;color:var(--sumi3);font-size:10.5px;font-variant-numeric:tabular-nums}
 .nums{display:flex;gap:30px;margin-top:30px}
@@ -283,7 +228,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 }
 .set .b button:hover{border-color:var(--lit);color:var(--lit)}
 .set p{margin:12px 0 0;color:var(--sumi3);font-size:11px;line-height:1.7;letter-spacing:.04em}
-.set .box{margin-top:26px}
+
+/* 気づきを溜める。その場で直さない。 */
+.note{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--edge)}
+.note time{color:var(--sumi3);font-size:10px;font-variant-numeric:tabular-nums;flex:none;
+  width:44px;padding-top:3px}
+.note p{margin:0;flex:1;font-size:14.5px;line-height:1.6;color:var(--sumi2)}
+.note button{color:var(--sumi3);font-size:14px;padding:0 4px;flex:none}
+.note button:hover{color:var(--lit)}
 
 /* ── 位置（点を押しても移れる）─────────────────────── */
 .dots{
@@ -326,7 +278,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 }
 
 /* ── 直す ────────────────────────────────────────────── */
-.sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.34);display:none}
+.sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);display:none}
 .sheet-bg.on{display:block;animation:ritein .2s ease both}
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:61;max-width:452px;margin:0 auto;display:none;
@@ -343,10 +295,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 }
 .sheet input.sm{font-size:14px;color:var(--sumi2)}
 .sheet input:focus{outline:none;border-bottom-color:var(--lit)}
-.sheet .b{display:flex;gap:10px;margin-top:30px}
+.sheet .b{display:flex;gap:10px;margin-top:28px}
 .sheet .b button{flex:1;border:1px solid var(--edge);border-radius:2px;padding:13px;
   font-size:11px;color:var(--sumi2)}
-.sheet .b button.keep{border-color:var(--lit);color:var(--lit)}
+.sheet .b button.keepb{border-color:var(--lit);color:var(--lit)}
+.sheet .out{width:100%;margin-top:10px;border:1px solid var(--edge);border-radius:2px;
+  padding:11px;font-size:11px;color:var(--sumi3)}
+.sheet .out:hover{border-color:var(--lit);color:var(--lit)}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
@@ -358,16 +313,32 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
 <div class="pager" id="pager">
 
-  <!-- 登録 -->
-  <section class="pane mid" id="pane-new">
-    <div class="in">
-      <textarea id="seed" rows="2" placeholder="one small thing" autocomplete="off"></textarea>
-      <div id="after"></div>
+  <!-- 記入（上に、記録された習慣） -->
+  <section class="pane" id="pane-new">
+    <div class="vsec" id="lives">
+      <div class="in">
+        <span class="lifeglow"></span>
+        <div class="lifecard" id="lifecard"></div>
+        <div class="pull en"><span>↑</span>swipe up to write</div>
+      </div>
+    </div>
+    <div class="vsec" id="entry">
+      <div class="drift" id="drift" aria-hidden="true"></div>
+      <div class="in">
+        <label class="lab en" for="actIn">one minute</label>
+        <textarea id="actIn" rows="2" placeholder="1分で終わることを書く" autocomplete="off"></textarea>
+        <div class="gap">
+          <label class="lab en" for="ancIn">after what</label>
+          <input type="text" id="ancIn" placeholder="歯みがきのあと" autocomplete="off">
+        </div>
+        <button class="keep en" id="keepBtn">keep</button>
+        <div class="pull en"><span>↓</span>pull down for others' habits</div>
+      </div>
     </div>
   </section>
 
   <!-- 今日 -->
-  <section class="pane mid" id="pane-today">
+  <section class="pane" id="pane-today">
     <div class="in">
       <div class="lines" id="lines"></div>
       <div class="foot" id="foot"></div>
@@ -391,21 +362,21 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
       <div class="mark en">released</div>
       <div id="relics"></div>
 
-      <div class="mark en">settings</div>
+      <div class="mark en">notes</div>
       <div class="set">
-        <label class="en" for="keyIn">api key</label>
-        <input type="password" id="keyIn" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
-        <div class="b"><button class="en" id="keySave">save</button></div>
-        <p class="en" id="keyNote"></p>
-        <div class="box">
-          <label class="en" for="ioBox">carry over</label>
-          <textarea id="ioBox" rows="3"></textarea>
-          <div class="b">
-            <button class="en" id="ioOut">copy out</button>
-            <button class="en" id="ioIn">bring in</button>
-          </div>
-          <p class="en" id="ioNote">for moving to another phone.</p>
+        <textarea id="noteIn" rows="3" placeholder="気づいたこと。直さず、ここに溜める。"></textarea>
+        <div class="b"><button class="en" id="noteAdd">add</button></div>
+        <div id="noteList"></div>
+      </div>
+
+      <div class="mark en">carry over</div>
+      <div class="set">
+        <textarea id="ioBox" rows="3"></textarea>
+        <div class="b">
+          <button class="en" id="ioOut">copy out</button>
+          <button class="en" id="ioIn">bring in</button>
         </div>
+        <p class="en" id="ioNote">for moving to another phone.</p>
       </div>
     </div>
   </section>
@@ -413,7 +384,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 </div>
 
 <nav class="dots" id="dots">
-  <button data-go="0" aria-label="new"><span></span></button>
+  <button data-go="0" aria-label="write"><span></span></button>
   <button data-go="1" aria-label="today"><span></span></button>
   <button data-go="2" aria-label="days"><span></span></button>
 </nav>
@@ -423,44 +394,110 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
 <div class="sheet-bg" id="sheetBg"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true">
-  <label class="en" for="eWhat">what</label>
+  <label class="en" for="eWhat">one minute</label>
   <input type="text" id="eWhat" autocomplete="off">
   <div class="f2">
     <label class="en" for="eWhen">after what</label>
     <input type="text" id="eWhen" class="sm" autocomplete="off" placeholder="—">
-    <div class="chips" id="eChips"></div>
   </div>
   <div class="b">
-    <button class="en keep" id="eSave">save</button>
+    <button class="en keepb" id="eSave">save</button>
     <button class="en" id="eDrop">let go</button>
   </div>
+  <button class="out en" id="eOut" hidden>put today's light out</button>
 </div>
 
 <script>
 (function(){
 "use strict";
 
-var KEY="nanoka.v1", KEYK="nanoka.key", GOAL=7, SLOTS=3;
+var KEY="nanoka.v1", GOAL=7, SLOTS=3;
 
-/* claude.ai版で灯していた記録。この端末で初めて開いたときだけ引き継ぐ。 */
-var MIGRATE={"v":1,"updatedAt":1788779985308,"quests":[{"id":"qmtr5exjyl84","title":"発声習慣",
-  "action":"「あー」と3秒発声する","anchor":"朝歯磨きをしたら","cheer":"よし","streak":1,
-  "last":"2026-09-07","grace":1,"born":"2026-09-07"}],"archive":[],"lit":1,
-  "days":{"2026-09-07":1}};
+/* ── すでにある一日。背景を流れ、くっつけ先の下敷きになる。 */
+var HINTS=[
+  "歯みがきのあと","顔を洗ったあと","シャワーのあと","コーヒーのあと","朝食のあと",
+  "着替えたあと","家を出るまえ","駅に着いたあと","電車に乗ったあと","改札を出たあと",
+  "席についたあと","PCを開くまえ","朝会のあと","メールを閉じたあと","昼めしのあと",
+  "打合せのあと","電話を切ったあと","席を立つまえ","一服のあと","午後の一杯のあと",
+  "退社のまえ","帰りの電車のあと","家に着いたあと","靴を脱いだあと","手を洗ったあと",
+  "夕食のあと","皿を片づけたあと","風呂のあと","歯みがきのまえ","スマホを置くまえ",
+  "布団に入るまえ","電気を消すまえ"
+];
+
+/* ── 記録に残っている、人の習慣。思い浮かばないときにめくる。 */
+var LIVES=[
+  ["BENJAMIN FRANKLIN","発明家・政治家",
+   "朝いちばんに「今日はどんな良いことをするか」と自分に問い、夜に「今日はどんな良いことをしたか」と振り返った。",
+   "朝、その一文を自分に聞く"],
+  ["CHARLES DARWIN","博物学者",
+   "毎日きまった時刻に、自宅の小道を歩いた。考えごとはそこでした。",
+   "家の前を一往復する"],
+  ["IMMANUEL KANT","哲学者",
+   "午後の散歩が正確すぎて、町の人が時計を合わせたと言われる。",
+   "決めた時刻に玄関を出る"],
+  ["LUDWIG VAN BEETHOVEN","作曲家",
+   "朝のコーヒーは、豆を60粒きっちり数えて淹れた。",
+   "豆を数えて淹れる"],
+  ["HARUKI MURAKAMI","小説家",
+   "長編を書く間は朝4時に起き、数時間書いてから走るか泳ぐ。それを毎日繰り返す。",
+   "起きてすぐ机に座る"],
+  ["ERNEST HEMINGWAY","小説家",
+   "夜明けに書きはじめ、次に何を書くか分かっているうちに手を止めた。",
+   "明日の書き出しを一行だけ残す"],
+  ["MAYA ANGELOU","詩人",
+   "朝、家を出て質素なホテルの一室を借り、そこでだけ書いた。",
+   "書く場所を決めて座る"],
+  ["STEVE JOBS","起業家",
+   "毎朝鏡に向かい「今日が最後の日でも、今日やることをするか」と問うた。",
+   "鏡の前で一度、自分に聞く"],
+  ["ICHIRO SUZUKI","野球選手",
+   "球場入りから打席に立つまでの所作を、毎日おなじ順序で繰り返した。",
+   "始めるまえの所作をひとつ決める"],
+  ["KOBE BRYANT","バスケットボール選手",
+   "夜明けまえに起きて、誰よりも早く体育館に入った。",
+   "起きたらすぐ着替える"],
+  ["NIKOLA TESLA","発明家",
+   "毎晩、足の指を片方ずつ動かす運動を欠かさなかったという。",
+   "寝るまえに足の指を動かす"],
+  ["WINSTON CHURCHILL","政治家",
+   "午後にかならず短い昼寝をとり、一日を二日分に分けた。",
+   "昼に目を閉じて座る"],
+  ["WARREN BUFFETT","投資家",
+   "一日の大半を、ただ読むことに使う。",
+   "一ページだけ読む"],
+  ["BILL GATES","起業家",
+   "年に二度、本だけを持って一週間こもる週をつくった。",
+   "読む本を机に出す"],
+  ["SALVADOR DALI","画家",
+   "鍵を手に持ったまま眠り、落ちる音で目覚めた瞬間に見えたものを描いた。",
+   "思いついたことを一行書く"],
+  ["LEO TOLSTOY","作家",
+   "生涯にわたって日記をつけ続けた。",
+   "今日を一行だけ書く"],
+  ["VICTOR HUGO","作家",
+   "書き終えるまで外へ出られないよう、服を隠させたと伝わる。",
+   "書くあいだ、携帯を別の部屋に置く"],
+  ["ANTHONY TROLLOPE","作家",
+   "机に時計を置き、15分ごとの速度を決めて毎朝書いた。役所勤めのまえに。",
+   "時計を机に置く"],
+  ["JOHN GRISHAM","作家",
+   "弁護士として働きながら、始業まえに一日一ページだけ書いた。",
+   "出勤まえに一行書く"],
+  ["MARIE CURIE","物理学者・化学者",
+   "研究の記録を毎日ノートに取り続けた。そのノートは今も残っている。",
+   "今日やったことを一行残す"]
+];
 
 /* ── 状態 ─────────────────────────────── */
-function blank(){ return {v:1,updatedAt:0,quests:[],archive:[],lit:0,days:{},taught:false}; }
+function blank(){ return {v:1,updatedAt:0,quests:[],archive:[],lit:0,days:{},taught:false,notes:[]}; }
 function load(){
   try{
     var raw=localStorage.getItem(KEY);
-    if(raw===null){ localStorage.setItem(KEY, JSON.stringify(MIGRATE)); raw=JSON.stringify(MIGRATE); }
+    if(raw===null) return blank();
     var s=JSON.parse(raw);
     if(!s || !Array.isArray(s.quests)) return blank();
-    s.archive=s.archive||[]; s.lit=s.lit||0; s.updatedAt=s.updatedAt||0; s.taught=!!s.taught;
-    if(!s.days){                       /* 日ごとの記録は後から足した。既存分を拾い直す。 */
-      s.days={};
-      s.quests.forEach(function(q){ if(q.last) s.days[q.last]=(s.days[q.last]||0)+1; });
-    }
+    s.archive=s.archive||[]; s.lit=s.lit||0; s.updatedAt=s.updatedAt||0;
+    s.taught=!!s.taught; s.days=s.days||{}; s.notes=s.notes||[];
     return s;
   }catch(e){ return blank(); }
 }
@@ -469,7 +506,6 @@ function save(){
   state.updatedAt=Date.now();
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
 }
-function apiKey(){ try{ return localStorage.getItem(KEYK)||""; }catch(e){ return ""; } }
 function find(id){ var q=null; state.quests.forEach(function(x){ if(x.id===id) q=x; }); return q; }
 
 /* ── 日付 ─────────────────────────────── */
@@ -492,11 +528,14 @@ function lineHtml(q, justNow){
     if(justNow && i===q.streak-1) c+=" now";
     w+='<i class="'+c+'"></i>';
   }
-  return '<button class="line'+(on?" on":"")+'" data-id="'+q.id+'" aria-pressed="'+on+'">'+
-    '<span class="glow"></span>'+
-    '<span class="txt">'+esc(q.action)+"</span>"+
-    (q.anchor?'<span class="when">'+esc(q.anchor)+"</span>":"")+
-    '<span class="wick">'+w+"</span></button>";
+  return '<div class="row">'+
+    '<button class="line'+(on?" on":"")+'" data-id="'+q.id+'" aria-pressed="'+on+'">'+
+      '<span class="glow"></span>'+
+      '<span class="txt">'+esc(q.action)+"</span>"+
+      (q.anchor?'<span class="when">'+esc(q.anchor)+"</span>":"")+
+      '<span class="wick">'+w+"</span></button>"+
+    '<button class="fix en" data-fix="'+q.id+'">edit</button>'+
+  "</div>";
 }
 function renderLines(justNowId){
   var h="";
@@ -505,16 +544,23 @@ function renderLines(justNowId){
   document.getElementById("lines").innerHTML=h;
 
   var foot=document.getElementById("foot");
-  if(!state.quests.length) foot.innerHTML='<div class="nudge">&lsaquo;</div>';
-  else if(!state.taught) foot.innerHTML='<div class="tip en">touch to light · hold to change</div>';
-  else foot.innerHTML="";
+  if(undoData){
+    foot.innerHTML='<div class="undo"><span class="en">lit just now</span>'+
+                   '<button class="en" id="undoBtn">undo</button></div>';
+  }else if(!state.quests.length){
+    foot.innerHTML='<div class="nudge">‹</div>';
+  }else if(!state.taught){
+    foot.innerHTML='<div class="tip en">touch to light · edit to change</div>';
+  }else foot.innerHTML="";
 }
 
-/* ── 灯す ─────────────────────────────── */
+/* ── 灯す。押し間違いから戻れるようにしておく。 ───────── */
+var undoData=null, undoTimer=null;
 function kindle(id){
   var q=find(id), t=key();
   if(!q || q.last===t) return;
 
+  var before={id:id, last:q.last, streak:q.streak, grace:q.grace};
   if(!q.last){ q.streak=1; }
   else{
     var d=gap(t,q.last);
@@ -525,13 +571,32 @@ function kindle(id){
   q.last=t; state.lit++; state.days[t]=(state.days[t]||0)+1; state.taught=true;
 
   if(q.streak>=GOAL){ purify(q); return; }
-  save(); renderLines(id); renderDash(); whisper(q.cheer||"よし");
+  undoData=before;
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(function(){ undoData=null; renderLines(); }, 9000);
+  save(); renderLines(id); renderDash(); whisper("よし");
+}
+
+/* 灯した分を、そのまま返す。 */
+function unkindle(id){
+  var q=find(id||(undoData&&undoData.id)), t=key();
+  if(!q || q.last!==t) return;
+  var back = (undoData && undoData.id===q.id) ? undoData : null;
+  q.last = back ? back.last : null;
+  q.streak = back ? back.streak : Math.max(0,q.streak-1);
+  if(back) q.grace = back.grace;
+  state.lit=Math.max(0,state.lit-1);
+  state.days[t]=Math.max(0,(state.days[t]||1)-1);
+  if(!state.days[t]) delete state.days[t];
+  undoData=null; clearTimeout(undoTimer);
+  save(); renderLines(); renderDash();
 }
 
 function purify(q){
   state.quests=state.quests.filter(function(x){ return x.id!==q.id; });
   state.archive.push({title:q.title||q.action, action:q.action, anchor:q.anchor, done:key()});
-  save(); renderLines(); renderDash(); renderNew();
+  undoData=null;
+  save(); renderLines(); renderDash();
   var r=document.getElementById("rite");
   document.getElementById("riteText").textContent=q.action;
   r.classList.add("on");
@@ -544,59 +609,36 @@ function whisper(text){
   w.classList.remove("go"); void w.offsetWidth; w.classList.add("go");
 }
 
-/* ── ふれる／押す ─────────────────────── */
-/* 短くふれたら灯る。押し続けると直せる。今日もう灯した行は、ふれれば直しに入る。 */
-var press=null, held=false, startY=0, moved=false;
 var lines=document.getElementById("lines");
-lines.addEventListener("pointerdown",function(e){
-  var el=e.target.closest(".line"); if(!el) return;
-  held=false; moved=false; startY=e.clientY;
-  press=setTimeout(function(){
-    held=true;
-    if(!moved) openEdit(el.getAttribute("data-id"));
-  }, 480);
-});
-lines.addEventListener("pointermove",function(e){
-  if(press===null) return;
-  if(Math.abs(e.clientY-startY)>10){ moved=true; clearTimeout(press); press=null; }
-});
-["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-  lines.addEventListener(ev,function(){ clearTimeout(press); press=null; });
-});
 lines.addEventListener("click",function(e){
-  var el=e.target.closest(".line"); if(!el) return;
-  if(held){ held=false; return; }
-  var id=el.getAttribute("data-id"), q=find(id);
-  if(q && q.last===key()) openEdit(id);   /* 今日はもう灯した。押せば直せる。 */
-  else kindle(id);
+  var f=e.target.closest("[data-fix]");
+  if(f){ openEdit(f.getAttribute("data-fix")); return; }
+  var el=e.target.closest(".line");
+  if(el) kindle(el.getAttribute("data-id"));
+});
+document.getElementById("foot").addEventListener("click",function(e){
+  if(e.target.closest("#undoBtn")) unkindle();
 });
 
 /* ── 直す ─────────────────────────────── */
 var editId=null, dropArmed=false;
 var sheet=document.getElementById("sheet"), sheetBg=document.getElementById("sheetBg");
 var eWhat=document.getElementById("eWhat"), eWhen=document.getElementById("eWhen");
-var eDrop=document.getElementById("eDrop");
+var eDrop=document.getElementById("eDrop"), eOut=document.getElementById("eOut");
 
 function openEdit(id){
   var q=find(id); if(!q) return;
   editId=id; dropArmed=false;
   eDrop.textContent="let go";
   eWhat.value=q.action||""; eWhen.value=q.anchor||"";
-  document.getElementById("eChips").innerHTML=ANCHORS.map(function(a){
-    return '<button class="chip" data-c="'+esc(a)+'">'+esc(a)+"</button>";
-  }).join("");
+  eOut.hidden = q.last!==key();
   sheetBg.classList.add("on"); sheet.classList.add("on");
-  setTimeout(function(){ eWhat.focus(); }, 260);
 }
 function closeEdit(){
   sheetBg.classList.remove("on"); sheet.classList.remove("on");
   editId=null; dropArmed=false;
 }
 sheetBg.addEventListener("click",closeEdit);
-document.getElementById("eChips").addEventListener("click",function(e){
-  var c=e.target.closest("[data-c]");
-  if(c) eWhen.value=c.getAttribute("data-c");
-});
 document.getElementById("eSave").addEventListener("click",function(){
   var q=find(editId);
   if(q){
@@ -611,9 +653,10 @@ eDrop.addEventListener("click",function(){
   if(!dropArmed){ dropArmed=true; eDrop.textContent="sure?"; return; }
   var id=editId;
   state.quests=state.quests.filter(function(x){ return x.id!==id; });
-  save(); renderLines(); renderNew();
+  save(); renderLines(); renderEntry();
   closeEdit();
 });
+eOut.addEventListener("click",function(){ unkindle(editId); closeEdit(); });
 [eWhat,eWhen].forEach(function(el){
   el.addEventListener("keydown",function(e){
     if(e.isComposing || e.keyCode===229) return;
@@ -621,335 +664,109 @@ eDrop.addEventListener("click",function(){
   });
 });
 
-/* ── 登録 ─────────────────────────────── */
-/* すでに毎日やっていること。直すシートの早取り用。 */
-var ANCHORS=["歯を磨いたら","顔を洗ったら","コーヒーを淹れたら","席についたら",
-             "家に着いたら","靴を脱いだら","風呂から出たら","布団に入ったら"];
+/* ── 記入 ─────────────────────────────── */
+var actIn=document.getElementById("actIn"), ancIn=document.getElementById("ancIn");
+var keepBtn=document.getElementById("keepBtn");
 
-/* 一日の細かい瞬間を、場面の塊にして持つ。
-   一つずつ繰るのではなく、塊ごと見渡して掴めるように。 */
-var CLUSTERS=[
-  ["waking","morning",["目が覚めたら","布団から足を出したら","カーテンを開けたら"]],
-  ["washing","morning",["トイレを出たら","顔を洗ったら","歯を磨いたら","鏡から目を離したら"]],
-  ["kitchen","morning",["コップに水を注いだら","湯が沸いたら","コーヒーを淹れたら",
-                        "最初の一口を飲んだら","皿をシンクに置いたら","冷蔵庫を閉めたら"]],
-  ["leaving","morning",["薬を飲んだら","着替え終わったら","鞄を持ち上げたら",
-                        "靴を履いたら","玄関の鍵を閉めたら"]],
-  ["commute","midday",["改札を通ったら","電車に乗ったら","電車を降りたら","エレベーターを待つ間"]],
-  ["desk","midday",["席についたら","画面を開く前に","最初のメールを閉じたら","会議が終わったら",
-                    "電話を切ったら","立ち上がったとき","画面から目を離したとき"]],
-  ["midday","midday",["手を洗ったら","昼を食べ終えたら","コンビニを出たら",
-                      "午後の一杯を淹れたら","伸びをしたあと"]],
-  ["coming home","evening",["仕事を閉じたら","建物を出たら","帰りの電車に乗ったら",
-                            "家の鍵を開けたら","靴を脱いだら","上着をかけたら","うがいをしたら"]],
-  ["supper","evening",["夕食の皿を片づけたら","湯を張ったら"]],
-  ["bath","night",["風呂から出たら","髪を乾かしたら"]],
-  ["bed","night",["夜の歯磨きを終えたら","明日の服を出したら","照明を落としたら",
-                  "スマホを充電器に置いたら","布団に入ったら","枕に頭をつけたら"]]
-];
-
-var seed=document.getElementById("seed"), after=document.getElementById("after");
-
-function renderNew(){
+function renderEntry(){
   var full=state.quests.length>=SLOTS;
-  seed.disabled=full;
-  seed.placeholder = full ? "three is enough" : "one small thing";
-  if(full){
-    after.innerHTML=""; flow=null; seed.style.display="";
-    document.getElementById("pane-new").classList.remove("scrolly");
-  }
+  actIn.disabled=full; ancIn.disabled=full; keepBtn.disabled=full;
+  actIn.placeholder = full ? "three is enough" : "1分で終わることを書く";
+  keepBtn.textContent = full ? "three is enough" : "keep";
+  ready();
 }
-
-function startQuest(text){
-  if(state.quests.length>=SLOTS) return null;
-  var q={ id:"q"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-    title:text, action:text, anchor:"", cheer:"よし",
-    streak:0, last:null, grace:1, born:key() };
-  state.quests.push(q); save(); renderLines(); renderNew();
-  return q;
+function ready(){
+  keepBtn.classList.toggle("ready", actIn.value.trim().length>0 && !actIn.disabled);
 }
-
-seed.addEventListener("keydown",function(e){
-  if(e.isComposing || e.keyCode===229) return;   /* 変換中の確定Enterは登録ではない */
-  if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); commit(); }
+[actIn,ancIn].forEach(function(el){ el.addEventListener("input",ready); });
+actIn.addEventListener("keydown",function(e){
+  if(e.isComposing || e.keyCode===229) return;
+  if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); ancIn.focus(); }
 });
-seed.addEventListener("blur",function(){ if(seed.value.trim().length>=2) commit(); });
+ancIn.addEventListener("keydown",function(e){
+  if(e.isComposing || e.keyCode===229) return;
+  if(e.key==="Enter"){ e.preventDefault(); keep(); }
+});
+keepBtn.addEventListener("click",keep);
 
-var flow=null;
-
-/* ── 投げた言葉を1分まで割る ───────────── */
-/* 「〜したい」を辞書形に戻す。い段→う段（五段）、え段→+る（一段）。 */
-var IDAN="いきしちにひみりぎじぢびぴ", UDAN="うくすつぬふむるぐずづぶぷ";
-var EDAN="えけせてねへめれげぜでべぺ";
-function dictForm(t){
-  t=String(t||"").trim();
-  t=t.replace(/(し|やり|なり)たい$/,function(m,v){
-    return v==="し" ? "する" : v==="やり" ? "やる" : "なる";
+function keep(){
+  var a=actIn.value.trim();
+  if(!a || state.quests.length>=SLOTS){ if(!a) actIn.focus(); return; }
+  state.quests.push({
+    id:"q"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    title:a, action:a, anchor:ancIn.value.trim(), cheer:"よし",
+    streak:0, last:null, grace:1, born:key()
   });
-  if(/たい$/.test(t)){
-    var stem=t.slice(0,-2), last=stem.slice(-1), i=IDAN.indexOf(last);
-    if(i>=0) t=stem.slice(0,-1)+UDAN[i];
-    else if(EDAN.indexOf(last)>=0) t=stem+"る";
-  }
-  return t;
-}
-/* 1分にするとは、断れなくなるところまでハードルを落とすこと。
-   「短くやる」ではなく、やる手前の一手だけを取り出す。
-   「〜を」があれば対象を掴んで、道具側からも落とす。 */
-function shrink(phrase){
-  var v=dictForm(phrase), verb=UDAN.indexOf(v.slice(-1))>=0;
-  var raw=String(phrase), cut=raw.indexOf("を");
-  var n=(cut>0 && cut<=12) ? raw.slice(0,cut) : null;
-  var pool=[];
-  if(n){
-    pool.push(n+"を手に取るだけ", n+"を開くだけ", n+"を目に入る所に置く",
-              n+"に10秒だけ触れる", n+"を出して、しまわない", n+"の前に座るだけ");
-  }
-  if(verb){
-    pool.push(v+"構えだけつくる", v+"のを10秒でやめる", v+"場所に立つだけ",
-              "明日"+v+"ための物を出す", v+"のを1回で終える",
-              "やる気が出る前に"+v);
-  }else{
-    pool.push(v+"に10秒だけ触れる", v+"を目に入る所に置く",
-              "明日の"+v+"を出しておく", v+"を1つだけ");
-  }
-  var out=[], seen={};
-  while(pool.length && out.length<6){
-    var t=pool.splice(Math.floor(Math.random()*pool.length),1)[0];
-    if(!seen[t]){ seen[t]=1; out.push({text:t}); }
-  }
-  return out;
+  save();
+  actIn.value=""; ancIn.value=""; actIn.blur(); ancIn.blur();
+  renderLines(); renderEntry(); go(1);
 }
 
-function commit(){
-  var t=seed.value.trim();
-  if(!t || state.quests.length>=SLOTS) return;
-  var q=startQuest(t);
-  if(!q) return;
-  seed.value=""; seed.blur();
-  /* 投げた時点でもう登録されている。ここから先は足さなくてよい。 */
-  flow={id:q.id, phrase:t, actions:[], anchors:[], pool:[]};
-  renderFlow("blast");
-  /* 手元の割り方を先に落とす。鍵があれば、遅れて来た分をあとから足す。 */
-  flow.actions=shrink(t);
-  setTimeout(function(){ if(flow) renderFlow("action"); }, 820);
-  if(apiKey()){
-    callClaude(promptFor(t)).then(function(d){
-      if(!flow) return;
-      var have={}; flow.actions.forEach(function(a){ have[a.text]=1; });
-      var add=(d && d.actions || []).map(function(a){
-        return typeof a==="string" ? {text:a} : {text:String(a.text||"")};
-      }).filter(function(a){ return a.text && !have[a.text]; });
-      flow.anchors=(d && d.anchors || []).slice(0,5).map(String).filter(Boolean);
-      if(add.length && document.getElementById("shards")){
-        var from=flow.actions.length;
-        flow.actions=flow.actions.concat(add);
-        addShards(from);
-      }else if(add.length){
-        flow.actions=flow.actions.concat(add);
-      }
-    }).catch(function(){});
-  }
-}
-
-/* wait → action（1分に割った案）→ anchor（くっつける相手）→ done */
-function renderFlow(stage){
-  if(!flow){ after.innerHTML=""; return; }
-  var live=find(flow.id);
-  if(!live){ after.innerHTML=""; flow=null; return; }
-  var h="";
-  if(stage==="blast"){
-    h+=blastHtml(flow.phrase);
-  }else if(stage==="action"){
-    h+='<div class="say en" style="margin-top:8px">one minute</div><div class="shards" id="shards"></div>';
-  }else if(stage==="anchor"){
-    h+='<div class="thrown">'+esc(live.action)+"</div>"+
-       '<div class="say en" style="margin-top:18px">after what</div>'+riverHtml();
-  }else{
-    h+='<div class="thrown">'+esc(live.action)+'</div><div class="say en">kept</div>';
-  }
-  after.innerHTML=h;
-  seed.style.display = (stage==="blast"||stage==="action"||stage==="anchor") ? "none" : "";
-  document.getElementById("pane-new").classList.toggle("scrolly", stage==="action"||stage==="anchor");
-  if(stage==="blast"){
-    var b=document.getElementById("blast");
-    if(b){ void b.offsetWidth; b.classList.add("go"); }
-  }
-  if(stage==="action") addShards(0);
-  if(stage==="anchor") holdRiver();
-}
-
-/* 投げた言葉を、床に叩きつけて砕く。破片は横へ散り、下へ落ちる。 */
-function blastHtml(text){
-  var chars=String(text).split(""), mid=(chars.length-1)/2;
-  var h='<div class="blast" id="blast"><span class="flash"></span><span class="shock"></span>';
-  chars.forEach(function(ch,i){
-    var side=(i-mid)/(mid||1);                       /* 中心から外へ逃がす */
-    var dx=side*(70+Math.random()*130) + (Math.random()-0.5)*40;
-    var dy=18+Math.random()*70;                      /* かならず下へ */
-    h+='<span class="c" style="--dx:'+dx.toFixed(0)+'px;--dy:'+dy.toFixed(0)+
-       'px;--rr:'+((Math.random()-0.5)*260).toFixed(0)+
-       'deg;--d:'+(Math.random()*90).toFixed(0)+'ms">'+esc(ch)+"</span>";
+/* 背景に、すでにある一日を流す */
+function drift(){
+  var box=document.getElementById("drift"), h="", n=HINTS.length;
+  var rows=[[],[],[],[],[],[]];
+  HINTS.forEach(function(t,i){ rows[i%6].push(t); });
+  var sp=["96s","124s","108s","140s","116s","132s"];
+  rows.forEach(function(items,i){
+    var row=items.concat(items).map(function(t){ return "<span>"+esc(t)+"</span>"; }).join("");
+    h+='<div class="lane" style="--s:'+sp[i]+';margin-top:'+(i?38:70)+'px">'+row+"</div>";
   });
-  return h+"</div>";
+  box.innerHTML=h;
 }
 
-/* 破片を落とす。列に整えず、ばらけさせる。 */
-function addShards(from){
-  var box=document.getElementById("shards");
-  if(!box) return;
-  var h="", place=["flex-start","center","flex-end"];
-  for(var i=from;i<flow.actions.length;i++){
-    var al=place[Math.floor(Math.random()*3)];
-    var x=(Math.random()*46-23).toFixed(0);
-    h+='<button class="shard" data-a="'+i+'" style="align-self:'+al+
-       ';font-size:'+(15+Math.random()*2.6).toFixed(1)+'px'+
-       ';--r:'+((Math.random()-0.5)*7).toFixed(2)+'deg'+
-       ';--x:'+x+'px;--d:'+((i-from)*55+40)+'ms">'+
-       esc(flow.actions[i].text)+"</button>";
+/* ── 記録された習慣をめくる ───────────── */
+var lifeOrder=[], lifeAt=0;
+function shuffleLives(){
+  lifeOrder=LIVES.map(function(_,i){ return i; });
+  for(var i=lifeOrder.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1)), t=lifeOrder[i];
+    lifeOrder[i]=lifeOrder[j]; lifeOrder[j]=t;
   }
-  box.insertAdjacentHTML("beforeend", h);
+  lifeAt=0;
 }
-
-/* ── 瞬間の場 ─────────────────────────── */
-/* 一度に見渡せることを最優先する。今の時刻に近い塊を先に、明るく置く。 */
-function phaseNow(){
-  var h=new Date().getHours();
-  return h<11 ? "morning" : h<17 ? "midday" : h<21 ? "evening" : "night";
+function renderLife(){
+  var L=LIVES[lifeOrder[lifeAt % lifeOrder.length]];
+  var c=document.getElementById("lifecard");
+  c.innerHTML='<div class="who en">'+esc(L[0])+"</div>"+
+    '<div class="what">'+esc(L[1])+"</div>"+
+    '<div class="did">'+esc(L[2])+"</div>"+
+    '<button class="take" data-take="'+esc(L[3])+'"><b class="en">one minute of it</b>'+esc(L[3])+"</button>";
+  c.classList.remove("flip"); void c.offsetWidth; c.classList.add("flip");
 }
-
-/* 瞬間は探させない。左へゆっくり流し、文脈に近いものだけ薄く光らせる。 */
-function riverHtml(){
-  var now=phaseNow(), items=[];
-  (flow.anchors||[]).forEach(function(t){ items.push([t,true]); });
-  CLUSTERS.forEach(function(c){
-    c[2].forEach(function(t){ items.push([t, c[1]===now]); });
-  });
-  flow.pool=items.map(function(x){ return x[0]; });
-
-  var L=6, lanes=[];
-  for(var n=0;n<L;n++) lanes.push([]);
-  items.forEach(function(x,i){ lanes[i%L].push(i); });
-
-  var speed=["58s","74s","64s","82s","68s","90s"], h='<div class="river" id="river">';
-  lanes.forEach(function(idx,li){
-    var row="";
-    for(var pass=0;pass<2;pass++){
-      idx.forEach(function(i){
-        row+='<button class="mchip'+(items[i][1]?" warm":"")+'" data-m="'+i+'">'+
-             esc(items[i][0])+"</button>";
-      });
-    }
-    h+='<div class="river-mask"><div class="lane" style="--s:'+speed[li]+'">'+row+"</div></div>";
-  });
-  return h+'</div><button class="mchip own en" data-own style="margin-top:16px">write your own</button>';
+function nextLife(){
+  lifeAt++;
+  if(lifeAt % lifeOrder.length===0) shuffleLives();
+  renderLife();
 }
-
-/* 触れている間は止める。動く的は掴めない。 */
-function holdRiver(){
-  var r=document.getElementById("river");
-  if(!r) return;
-  ["pointerdown","pointerenter"].forEach(function(ev){
-    r.addEventListener(ev,function(){ r.classList.add("hold"); });
-  });
-  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-    r.addEventListener(ev,function(){ r.classList.remove("hold"); });
-  });
-}
-
-/* 出てこなかったら、自分で書く。 */
-function writeOwn(){
-  var btn=document.querySelector("[data-own]");
-  if(!btn) return;
-  btn.outerHTML='<input type="text" id="ownIn" class="own" placeholder="—" autocomplete="off">';
-  var el=document.getElementById("ownIn");
-  el.focus();
-  function done(){
-    if(!document.getElementById("ownIn")) return;   /* もう確定済み */
-    var v=el.value.trim();
-    if(v) takeAnchor(v);
-  }
-  el.addEventListener("keydown",function(e){
-    if(e.isComposing || e.keyCode===229) return;
-    if(e.key==="Enter"){ e.preventDefault(); done(); }
-  });
-  el.addEventListener("blur",done);
-}
-
-function takeAnchor(text){
-  var q=find(flow && flow.id);
-  if(q && text){ q.anchor=text; save(); renderLines(); }
-  renderFlow("done");
-  setTimeout(function(){
-    go(1); flow=null; after.innerHTML=""; seed.style.display="";
-    document.getElementById("pane-new").classList.remove("scrolly");
-  }, 700);
-}
-
-after.addEventListener("click",function(e){
-  if(!flow) return;
-  var m=e.target.closest("[data-m]");
-  if(m){ takeAnchor(flow.pool[+m.getAttribute("data-m")]); return; }
-  if(e.target.closest("[data-own]")){ writeOwn(); return; }
-  var a=e.target.closest("[data-a]");
-  if(a){
-    var q1=find(flow.id), act=flow.actions[+a.getAttribute("data-a")];
-    if(q1 && act){ q1.action=act.text; q1.title=act.text; save(); renderLines(); }
-    renderFlow("anchor");
-    return;
-  }
+document.getElementById("lifecard").addEventListener("click",function(e){
+  var t=e.target.closest("[data-take]");
+  if(!t) return;
+  actIn.value=t.getAttribute("data-take");
+  ready();
+  toEntry();
+  setTimeout(function(){ actIn.focus(); }, 380);
 });
 
-var PROMPT=
-"あなたは習慣設計のコーチです。続かないのは意志ではなく設計の問題だと知っています。\n"+
-"1分にするとは、短くやることではありません。断る理由が消えるところまで\n"+
-"ハードルを落とすことです。やる手前の一手だけを取り出してください。\n"+
-"（道具に触るだけ／開くだけ／履くだけ／出しておくだけ／構えをつくるだけ／\n"+
-"　一行だけ／一音だけ／始めて10秒でやめる／目に入る所に置くだけ）\n"+
-"「5分」「10回」など1分を超える提案は禁止。似た案を言い換えて並べるのも禁止。\n"+
-"それぞれに、すでに毎日やっている行動への接続点（その直後に差し込める具体的な場面）を付けてください。\n"+
-"誇張・励まし口調・絵文字は禁止。淡々と書くこと。\n\n";
-function promptFor(t){
-  return PROMPT+"ユーザーが身につけたいこと: 「"+t+"」\n\n"+
-  "次の形のJSONだけを返してください（説明文は不要）:\n"+
-  '{"actions":[{"text":"1分で終わる具体的な行動。18文字以内"}],"anchors":["すでに毎日やっている行動。12文字以内、「〜したら」「〜の前に」の形"]}\n'+
-  "actionsは6つ。落とし方をすべて変えること："+
-  "道具に触れるだけ／開くか身につけるだけ／目に入る所に置くだけ／構えや場所だけ／"+
-  "ほんの一部だけ／始めてすぐやめる。\n"+
-  "anchorsは5つ。すべて日本語。";
-}
-
-function callClaude(prompt){
-  var k=apiKey();
-  if(!k) return Promise.reject({code:"no_key"});
-  return fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{
-      "content-type":"application/json",
-      "x-api-key":k,
-      "anthropic-version":"2023-06-01",
-      "anthropic-dangerous-direct-browser-access":"true"
-    },
-    body:JSON.stringify({
-      model:"claude-opus-5",
-      max_tokens:4000,
-      output_config:{effort:"low"},
-      messages:[{role:"user",content:prompt}]
-    })
-  }).then(function(r){
-    if(!r.ok) return Promise.reject({code:r.status===401||r.status===403?"auth":"http"});
-    return r.json();
-  },function(){ return Promise.reject({code:"network"}); })
-  .then(function(res){
-    if(res && res.stop_reason==="refusal") return Promise.reject({code:"refusal"});
-    var text=(res.content||[]).filter(function(b){ return b.type==="text"; })
-      .map(function(b){ return b.text||""; }).join("");
-    var m=text.match(/```(?:json)?\s*([\s\S]*?)```/), body=m?m[1]:text;
-    var a=body.indexOf("{"), b=body.lastIndexOf("}");
-    if(a<0||b<=a) throw {code:"invalid_json"};
-    return JSON.parse(body.slice(a,b+1));
-  });
-}
+/* 上から下へ引くと、次の記録が落ちてくる。 */
+var pane=document.getElementById("pane-new");
+var pullY=0, pulling=false;
+pane.addEventListener("pointerdown",function(e){
+  if(e.target.closest("input,textarea,button")) return;
+  pulling=true; pullY=e.clientY;
+});
+pane.addEventListener("pointermove",function(e){
+  if(!pulling) return;
+  var dy=e.clientY-pullY;
+  if(pane.scrollTop<=2 && dy>70){ pullY=e.clientY; nextLife(); }
+});
+["pointerup","pointercancel","pointerleave"].forEach(function(ev){
+  pane.addEventListener(ev,function(){ pulling=false; });
+});
+pane.addEventListener("wheel",function(e){
+  if(pane.scrollTop<=2 && e.deltaY<-30){ e.preventDefault(); nextLife(); }
+},{passive:false});
+function toEntry(){ pane.scrollTo({top:pane.clientHeight, behavior:"smooth"}); }
 
 /* ── 記録 ─────────────────────────────── */
 function renderDash(){
@@ -961,7 +778,6 @@ function renderDash(){
   var run=0; state.quests.forEach(function(q){ if(q.streak>run) run=q.streak; });
   document.getElementById("nRun").textContent=run;
 
-  /* 直近10週。今日が最下段に来るよう、週の終わりで切り上げる。 */
   var t=key(), today=toDate(t), h="", i;
   var end=new Date(today); end.setDate(end.getDate() + (6 - end.getDay()));
   var start=new Date(end); start.setDate(start.getDate() - 69);
@@ -985,15 +801,56 @@ function renderDash(){
     });
     box.innerHTML=r;
   }
+  renderNotes();
 }
+
+function renderNotes(){
+  var box=document.getElementById("noteList");
+  if(!state.notes.length){ box.innerHTML='<p class="none en" style="margin-top:14px">nothing yet.</p>'; return; }
+  var h="";
+  state.notes.slice().reverse().forEach(function(n,i){
+    var idx=state.notes.length-1-i;
+    h+='<div class="note"><time>'+esc(String(n.at||"").slice(5))+"</time>"+
+       "<p>"+esc(n.t)+'</p><button data-note="'+idx+'" aria-label="remove">×</button></div>';
+  });
+  box.innerHTML=h;
+}
+document.getElementById("noteAdd").addEventListener("click",function(){
+  var el=document.getElementById("noteIn"), t=el.value.trim();
+  if(!t) return;
+  state.notes.push({t:t, at:key()});
+  save(); el.value=""; el.blur(); renderNotes();
+});
+document.getElementById("noteList").addEventListener("click",function(e){
+  var b=e.target.closest("[data-note]");
+  if(!b) return;
+  state.notes.splice(+b.getAttribute("data-note"),1);
+  save(); renderNotes();
+});
+
+document.getElementById("ioOut").addEventListener("click",function(){
+  var b=document.getElementById("ioBox");
+  b.value=JSON.stringify(state); b.focus(); b.select();
+  document.getElementById("ioNote").textContent="hold it somewhere, paste it there.";
+});
+document.getElementById("ioIn").addEventListener("click",function(){
+  var b=document.getElementById("ioBox"), t=b.value.trim();
+  if(!t) return;
+  try{
+    var o=JSON.parse(t);
+    if(!o || !Array.isArray(o.quests)) throw 0;
+    o.archive=o.archive||[]; o.lit=o.lit||0; o.days=o.days||{}; o.notes=o.notes||[];
+    state=o; save(); renderLines(); renderDash(); renderEntry();
+    b.value=""; document.getElementById("ioNote").textContent="here they are.";
+  }catch(e){
+    document.getElementById("ioNote").textContent="that did not read. check it.";
+  }
+});
 
 /* ── 三面の行き来 ─────────────────────── */
 var pager=document.getElementById("pager");
 var dotBtns=document.getElementById("dots").children;
-var touched=false;
-/* scrollTo({behavior:"smooth"}) は scroll-snap-stop:always に打ち消されて動かない。
-   トゥイーンの間だけスナップを外し、自分で滑らせる。 */
-var tween=null, guard=null, dur=300;
+var touched=false, tween=null, guard=null, dur=300;
 function land(to){
   if(tween){ cancelAnimationFrame(tween); tween=null; }
   pager.scrollLeft=to;
@@ -1017,7 +874,6 @@ function go(i){
     else land(to);
   }
   tween=requestAnimationFrame(step);
-  /* 画面が隠れていると rAF は止まる。滑らせられなくても必ず着地させる。 */
   guard=setTimeout(function(){ land(to); }, dur+220);
 }
 function setDots(i){ for(var n=0;n<3;n++) dotBtns[n].classList.toggle("on", n===i); }
@@ -1028,7 +884,7 @@ for(var di=0; di<dotBtns.length; di++){
 }
 document.addEventListener("keydown",function(e){
   if(sheet.classList.contains("on")) return;
-  if(document.activeElement===seed) return;
+  if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   var i=Math.round(pager.scrollLeft/pager.clientWidth);
   if(e.key==="ArrowLeft" && i>0) go(i-1);
   if(e.key==="ArrowRight" && i<2) go(i+1);
@@ -1043,14 +899,14 @@ window.addEventListener("resize",function(){
   pager.scrollLeft=i*pager.clientWidth;
 });
 
-/* ── 和紙の繊維 ───────────────────────── */
+/* ── 黒い紙の繊維 ─────────────────────── */
 function washi(){
   try{
     var c=document.createElement("canvas"), S=512;
     c.width=c.height=S;
     var g=c.getContext("2d"); if(!g) return;
     var col=getComputedStyle(document.documentElement).getPropertyValue("--fiber").trim();
-    g.strokeStyle=col||"rgba(120,108,84,.055)"; g.lineCap="round";
+    g.strokeStyle=col||"rgba(226,214,186,.028)"; g.lineCap="round";
     for(var i=0;i<230;i++){
       var x=Math.random()*S, y=Math.random()*S,
           a=Math.random()*Math.PI*2, len=4+Math.random()*34;
@@ -1066,42 +922,15 @@ function washi(){
   }catch(e){}
 }
 
-/* ── 設定 ─────────────────────────────── */
-function reflectKey(){
-  var has=!!apiKey();
-  document.getElementById("keyIn").placeholder = has ? "saved" : "sk-ant-…";
-  document.getElementById("keyNote").textContent = has
-    ? "it stays on this phone. nothing but anthropic sees it. save it empty to forget it."
-    : "optional. with it, what you throw in comes back smaller.";
-}
-document.getElementById("keySave").addEventListener("click",function(){
-  var el=document.getElementById("keyIn"), v=el.value.trim();
-  try{ if(v) localStorage.setItem(KEYK,v); else localStorage.removeItem(KEYK); }catch(e){}
-  el.value=""; el.blur(); reflectKey();
-});
-document.getElementById("ioOut").addEventListener("click",function(){
-  var b=document.getElementById("ioBox");
-  b.value=JSON.stringify(state); b.focus(); b.select();
-  document.getElementById("ioNote").textContent="hold it somewhere, paste it there.";
-});
-document.getElementById("ioIn").addEventListener("click",function(){
-  var b=document.getElementById("ioBox"), t=b.value.trim();
-  if(!t) return;
-  try{
-    var o=JSON.parse(t);
-    if(!o || !Array.isArray(o.quests)) throw 0;
-    o.archive=o.archive||[]; o.lit=o.lit||0; o.days=o.days||{};
-    state=o; save(); renderLines(); renderDash(); renderNew();
-    b.value=""; document.getElementById("ioNote").textContent="here they are.";
-  }catch(e){
-    document.getElementById("ioNote").textContent="that did not read. check it.";
-  }
-});
-
 /* ── 起動 ─────────────────────────────── */
-renderLines(); renderDash(); renderNew(); reflectKey(); washi();
-/* 中央（今日）から始める。フォントの読み込みで再レイアウトが入ると
-   scroll-snap が先頭（登録）へ戻してしまうので、指が触れるまで何度か置き直す。 */
+renderLines(); renderDash(); renderEntry(); drift(); washi();
+shuffleLives(); renderLife();
+
+/* 記入面は下（記入）から始める。記録は、上に引いたときだけ出る。 */
+function seat(){
+  if(!pane.clientHeight) return;
+  if(Math.abs(pane.scrollTop-pane.clientHeight)>2) pane.scrollTop=pane.clientHeight;
+}
 function center(){
   if(touched || !pager.clientWidth) return;
   pager.scrollLeft=pager.clientWidth;
@@ -1110,11 +939,11 @@ function center(){
 ["pointerdown","touchstart","wheel","keydown"].forEach(function(ev){
   window.addEventListener(ev,function(){ touched=true; },{passive:true});
 });
-center();
-requestAnimationFrame(center);
-window.addEventListener("load",center);
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(center).catch(function(){});
-[60,200,500,900].forEach(function(ms){ setTimeout(center, ms); });
+center(); seat();
+requestAnimationFrame(function(){ center(); seat(); });
+window.addEventListener("load",function(){ center(); seat(); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ center(); seat(); }).catch(function(){});
+[60,200,500,900].forEach(function(ms){ setTimeout(function(){ center(); seat(); }, ms); });
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){

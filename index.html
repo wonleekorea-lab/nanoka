@@ -105,7 +105,25 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .orb:hover{border-color:var(--lit)}
 .orb.full{animation:none;opacity:.38}
 .orblab{color:var(--sumi3);font-size:10px}
-#pane-dash{overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; padding:0 28px}
+#pane-dash{position:relative; overflow:hidden; touch-action:pan-x}
+.dscroll{height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  touch-action:pan-y; padding:0 28px}
+.dscroll::-webkit-scrollbar{display:none}
+#dMain.off{transform:scale(.985)}
+#dNotes{padding:0 28px; justify-content:flex-start}
+#dNotes.off{transform:translateY(40px)}
+#dNotes .in{padding-top:calc(46px + env(safe-area-inset-top))}
+#dNotes textarea{
+  width:100%;background:var(--sheet);border:1px solid var(--edge);border-radius:2px;
+  color:var(--sumi);font-family:var(--body);font-size:14.5px;padding:12px 13px;resize:none;
+}
+#dNotes textarea:focus{outline:none;border-color:var(--lit)}
+#dNotes .b{margin-top:12px;display:flex}
+#dNotes .b button{flex:1;border:1px solid var(--edge);border-radius:2px;
+  padding:11px;font-size:11px;color:var(--sumi2)}
+#dNotes .b button:hover{border-color:var(--lit);color:var(--lit)}
+#dNotes .list{margin-top:22px;max-height:46dvh}
+.boardnote{color:var(--sumi3);font-size:10.5px;line-height:1.8;margin:16px 0 0}
 
 /* ── 今日の三行 ──────────────────────────────────────── */
 #tToday .in{
@@ -422,9 +440,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
     </div>
   </section>
 
-  <!-- 記録 -->
+  <!-- 記録（上へ払うと掲示板） -->
   <section class="pane" id="pane-dash">
-    <div class="in">
+   <div class="layer" id="dMain">
+    <div class="dscroll" id="dScroll">
+     <div class="in">
       <div class="today" id="dToday">—</div>
       <div class="sub en" id="dSub">—</div>
       <div class="nums">
@@ -439,13 +459,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
       <div class="mark en">released</div>
       <div id="relics"></div>
 
-      <div class="mark en">notes</div>
-      <div class="set">
-        <textarea id="noteIn" rows="3" placeholder="気づいたこと。直さず、ここに溜める。"></textarea>
-        <div class="b"><button class="en" id="noteAdd">add</button></div>
-        <div id="noteList"></div>
-      </div>
-
       <div class="mark en">carry over</div>
       <div class="set">
         <textarea id="ioBox" rows="3"></textarea>
@@ -455,7 +468,20 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
         </div>
         <p class="en" id="ioNote">for moving to another phone.</p>
       </div>
+      <div class="edgehint bot en" id="hintNotes" style="position:static;margin-top:34px">↑ notes</div>
+     </div>
     </div>
+   </div>
+
+   <div class="layer off" id="dNotes">
+     <div class="in">
+       <div class="listhead"><span class="en">notes</span><button class="en" data-back-d>back</button></div>
+       <textarea id="noteIn" rows="3" placeholder="直したいところ。いま直さなくていい。"></textarea>
+       <div class="b"><button class="en" id="noteAdd">add</button></div>
+       <p class="boardnote en">kept for later. nothing here changes the app by itself.</p>
+       <div class="list" id="noteList"></div>
+     </div>
+   </div>
   </section>
 
 </div>
@@ -504,10 +530,10 @@ var HINTS=[
 /* ── 記録に残っている、人の習慣。思い浮かばないときにめくる。 */
 var LIVES=[
   ["BENJAMIN FRANKLIN","発明家・政治家",
-   "朝いちばんに「今日はどんな良いことをするか」と自分に問い、夜に「今日はどんな良いことをしたか」と振り返った。",
+   "朝に「今日はどんな良いことをしようか」と自分へ問い、夜に「今日はどんな良いことをしたか」と書き留めた。",
    "朝、その一文を自分に聞く"],
   ["CHARLES DARWIN","博物学者",
-   "毎日きまった時刻に、自宅の小道を歩いた。考えごとはそこでした。",
+   "毎日きまった時刻に自宅の小道を歩いた。考えは歩きながらまとまっていった。",
    "家の前を一往復する"],
   ["IMMANUEL KANT","哲学者",
    "午後の散歩が正確すぎて、町の人が時計を合わせたと言われる。",
@@ -516,25 +542,25 @@ var LIVES=[
    "朝のコーヒーは、豆を60粒きっちり数えて淹れた。",
    "豆を数えて淹れる"],
   ["HARUKI MURAKAMI","小説家",
-   "長編を書く間は朝4時に起き、数時間書いてから走るか泳ぐ。それを毎日繰り返す。",
+   "長編を書く間は朝4時に起き、数時間書いたあとで走るか泳ぐ。それを毎日繰り返した。",
    "起きてすぐ机に座る"],
   ["ERNEST HEMINGWAY","小説家",
-   "夜明けに書きはじめ、次に何を書くか分かっているうちに手を止めた。",
+   "夜明けに書きはじめ、次に何を書くか分かっているうちに手を止めた。翌朝の入口を残すために。",
    "明日の書き出しを一行だけ残す"],
   ["MAYA ANGELOU","詩人",
-   "朝、家を出て質素なホテルの一室を借り、そこでだけ書いた。",
+   "朝に家を出て、借りておいた簡素なホテルの一室へ入り、そこでだけ書いた。",
    "書く場所を決めて座る"],
   ["STEVE JOBS","起業家",
-   "毎朝鏡に向かい「今日が最後の日でも、今日やることをするか」と問うた。",
+   "毎朝鏡に向かって「今日が人生最後の日だとしても、今日やることをするだろうか」と問うた。",
    "鏡の前で一度、自分に聞く"],
   ["ICHIRO SUZUKI","野球選手",
-   "球場入りから打席に立つまでの所作を、毎日おなじ順序で繰り返した。",
+   "球場に入ってから打席に立つまでの所作を、毎日おなじ順序で繰り返した。",
    "始めるまえの所作をひとつ決める"],
   ["KOBE BRYANT","バスケットボール選手",
    "夜明けまえに起きて、誰よりも早く体育館に入った。",
    "起きたらすぐ着替える"],
   ["NIKOLA TESLA","発明家",
-   "毎晩、足の指を片方ずつ動かす運動を欠かさなかったという。",
+   "毎晩、足の指を100回動かす運動を欠かさなかったという。",
    "寝るまえに足の指を動かす"],
   ["WINSTON CHURCHILL","政治家",
    "午後にかならず短い昼寝をとり、一日を二日分に分けた。",
@@ -543,7 +569,7 @@ var LIVES=[
    "一日の大半を、ただ読むことに使う。",
    "一ページだけ読む"],
   ["BILL GATES","起業家",
-   "年に二度、本だけを持って一週間こもる週をつくった。",
+   "年に二度、本だけを持って一週間ひとりでこもった。",
    "読む本を机に出す"],
   ["SALVADOR DALI","画家",
    "鍵を手に持ったまま眠り、落ちる音で目覚めた瞬間に見えたものを描いた。",
@@ -552,16 +578,16 @@ var LIVES=[
    "生涯にわたって日記をつけ続けた。",
    "今日を一行だけ書く"],
   ["VICTOR HUGO","作家",
-   "書き終えるまで外へ出られないよう、服を隠させたと伝わる。",
+   "書き終えるまで外へ出られないように、服を隠させたと伝わる。",
    "書くあいだ、携帯を別の部屋に置く"],
   ["ANTHONY TROLLOPE","作家",
-   "机に時計を置き、15分ごとの速度を決めて毎朝書いた。役所勤めのまえに。",
+   "机に時計を置き、15分ごとに書く量を決めて、役所へ出るまえに書いた。",
    "時計を机に置く"],
   ["JOHN GRISHAM","作家",
    "弁護士として働きながら、始業まえに一日一ページだけ書いた。",
    "出勤まえに一行書く"],
   ["MARIE CURIE","物理学者・化学者",
-   "研究の記録を毎日ノートに取り続けた。そのノートは今も残っている。",
+   "研究の記録を毎日ノートに書き続けた。そのノートは今も残っている。",
    "今日やったことを一行残す"]
 ];
 
@@ -650,6 +676,7 @@ function renderQueue(){
          '<div class="qt">'+esc(q.action)+"</div>"+
          (q.anchor?'<div class="qw">'+esc(q.anchor)+"</div>":"")+
          '<div class="qb"><button class="en" data-set="'+i+'">set</button>'+
+         '<button class="en" data-qedit="'+esc(q.id)+'">edit</button>'+
          '<button class="en" data-qdrop="'+i+'">let go</button></div>'+
          '<div class="swap" data-swap="'+i+'" hidden></div></div>';
     });
@@ -701,8 +728,9 @@ function setFromQueue(i, swapId){
 
 document.getElementById("queueList").addEventListener("click",function(e){
   var setB=e.target.closest("[data-set]"), dropB=e.target.closest("[data-qdrop]"),
-      pick=e.target.closest("[data-pick]");
+      pick=e.target.closest("[data-pick]"), edB=e.target.closest("[data-qedit]");
   if(pick){ setFromQueue(+pick.getAttribute("data-qi"), pick.getAttribute("data-pick")); return; }
+  if(edB){ openEdit(edB.getAttribute("data-qedit")); return; }
   if(dropB){
     state.queue.splice(+dropB.getAttribute("data-qdrop"),1);
     save(); renderQueue(); return;
@@ -802,17 +830,26 @@ document.getElementById("foot").addEventListener("click",function(e){
 });
 
 /* ── 直す ─────────────────────────────── */
-var editId=null, dropArmed=false;
+var editId=null, editFrom="quests", dropArmed=false;
 var sheet=document.getElementById("sheet"), sheetBg=document.getElementById("sheetBg");
 var eWhat=document.getElementById("eWhat"), eWhen=document.getElementById("eWhen");
 var eDrop=document.getElementById("eDrop"), eOut=document.getElementById("eOut");
 
+/* 三つの中にも、待ちの中にも同じ札で入る。 */
+function findAny(id){
+  var q=find(id);
+  if(q) return {q:q, from:"quests"};
+  for(var i=0;i<state.queue.length;i++){
+    if(state.queue[i].id===id) return {q:state.queue[i], from:"queue"};
+  }
+  return null;
+}
 function openEdit(id){
-  var q=find(id); if(!q) return;
-  editId=id; dropArmed=false;
+  var f=findAny(id); if(!f) return;
+  editId=id; editFrom=f.from; dropArmed=false;
   eDrop.textContent="let go";
-  eWhat.value=q.action||""; eWhen.value=q.anchor||"";
-  eOut.hidden = q.last!==key();
+  eWhat.value=f.q.action||""; eWhen.value=f.q.anchor||"";
+  eOut.hidden = (f.from!=="quests" || f.q.last!==key());
   sheetBg.classList.add("on"); sheet.classList.add("on");
 }
 function closeEdit(){
@@ -821,19 +858,20 @@ function closeEdit(){
 }
 sheetBg.addEventListener("click",closeEdit);
 document.getElementById("eSave").addEventListener("click",function(){
-  var q=find(editId);
-  if(q){
+  var f=findAny(editId);
+  if(f){
     var t=eWhat.value.trim();
-    if(t){ q.action=t; q.title=t; }
-    q.anchor=eWhen.value.trim();
-    save(); renderLines();
+    if(t){ f.q.action=t; f.q.title=t; }
+    f.q.anchor=eWhen.value.trim();
+    save(); renderLines(); renderQueue();
   }
   closeEdit();
 });
 eDrop.addEventListener("click",function(){
   if(!dropArmed){ dropArmed=true; eDrop.textContent="sure?"; return; }
   var id=editId;
-  state.quests=state.quests.filter(function(x){ return x.id!==id; });
+  if(editFrom==="queue") state.queue=state.queue.filter(function(x){ return x.id!==id; });
+  else state.quests=state.quests.filter(function(x){ return x.id!==id; });
   save(); renderLines(); renderQueue(); renderEntry();
   closeEdit();
 });
@@ -987,6 +1025,9 @@ function swipey(pane, cfg){
   },{passive:false});
 }
 function atTop(el){ return !el || el.scrollTop<=1; }
+function atBottom(el){
+  return !el || el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+}
 
 /* 書く面：下へ引くと記録、上へ払うと戻る。 */
 var pane=document.getElementById("pane-new");
@@ -1023,6 +1064,30 @@ swipey(paneT,{
   },
   down:function(){ if(tView==="today") tMode("done"); else if(tView==="queue") tMode("today"); },
   up:function(){ if(tView==="today") tMode("queue"); else if(tView==="done") tMode("today"); }
+});
+
+/* 記録の面：末尾まで送ってから上へ払うと掲示板。 */
+var paneD=document.getElementById("pane-dash"), dView="dash";
+var dMain=document.getElementById("dMain"), dNotes=document.getElementById("dNotes"),
+    dScroll=document.getElementById("dScroll");
+function dMode(v){
+  dView=v;
+  dMain.classList.toggle("off", v!=="dash");
+  dNotes.classList.toggle("off", v!=="notes");
+  if(v==="notes") renderNotes();
+}
+paneD.addEventListener("click",function(e){
+  if(e.target.closest("[data-back-d]")) dMode("dash");
+});
+swipey(paneD,{
+  layer:function(){ return dView==="notes" ? dNotes : dMain; },
+  allow:function(dir, target){
+    var list=target && target.closest ? target.closest(".list") : null;
+    if(dView==="notes") return dir>0 && atTop(list);
+    return dir<0 && atBottom(dScroll);
+  },
+  down:function(){ if(dView==="notes") dMode("dash"); },
+  up:function(){ if(dView==="dash") dMode("notes"); }
 });
 
 /* ── 記録 ─────────────────────────────── */
@@ -1063,7 +1128,7 @@ function renderDash(){
 
 function renderNotes(){
   var box=document.getElementById("noteList");
-  if(!state.notes.length){ box.innerHTML='<p class="none en" style="margin-top:14px">nothing yet.</p>'; return; }
+  if(!state.notes.length){ box.innerHTML='<p class="none en">nothing yet.</p>'; return; }
   var h="";
   state.notes.slice().reverse().forEach(function(n,i){
     var idx=state.notes.length-1-i;

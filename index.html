@@ -37,6 +37,7 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html,body{height:100%}
 body{
   margin:0; background:var(--paper); color:var(--sumi);
@@ -65,16 +66,40 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   display:flex; flex-direction:column;
 }
 #pane-today{overflow:hidden; touch-action:pan-x; justify-content:center; padding:0 30px}
-/* 記入面は縦にも動く。上に偉人の記録、下に記入。 */
-#pane-new{
-  overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;
-  scroll-snap-type:y mandatory; overscroll-behavior-y:contain; scrollbar-width:none;
+/* 記入面は縦に流さない。指の動きでそのまま入れ替える。 */
+#pane-new{position:relative; overflow:hidden; touch-action:pan-x}
+.layer{
+  position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+  padding:0 30px; will-change:transform;
+  transition:opacity .3s ease, transform .34s cubic-bezier(.2,.85,.3,1);
 }
-#pane-new::-webkit-scrollbar{display:none}
+.layer > .in{max-width:400px; width:100%; margin:0 auto; position:relative; z-index:1}
+.layer.off{opacity:0; pointer-events:none}
+#wWrite.off{transform:translateY(30px) scale(.985)}
+#wLives.off{transform:translateY(-38px)}
+
+/* 押すところを、真ん中にひとつだけ置く。 */
+.orbwrap{display:flex;flex-direction:column;align-items:center;gap:18px}
+.orb{
+  position:relative; width:106px; height:106px; border-radius:50%;
+  border:1px solid var(--rule);
+  background:radial-gradient(64% 64% at 50% 56%, var(--sheet), transparent 72%);
+  animation:orbbreathe 4.6s ease-in-out infinite;
+  transition:border-color .3s, transform .18s;
+}
+.orb::after{
+  content:""; position:absolute; inset:-18px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%, var(--bloom-soft), transparent 70%);
+}
+@keyframes orbbreathe{
+  0%,100%{box-shadow:0 0 14px var(--bloom-soft)}
+  50%{box-shadow:0 0 34px var(--bloom)}
+}
+.orb:active{transform:scale(.96)}
+.orb:hover{border-color:var(--lit)}
+.orb.full{animation:none;opacity:.38}
+.orblab{color:var(--sumi3);font-size:10px}
 #pane-dash{overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; padding:0 28px}
-.vsec{flex:0 0 100dvh; height:100dvh; scroll-snap-align:start; position:relative;
-  display:flex; flex-direction:column; justify-content:center; padding:0 30px}
-.vsec > .in{max-width:400px; width:100%; margin:0 auto; position:relative; z-index:1}
 
 /* ── 今日の三行 ──────────────────────────────────────── */
 #pane-today .in{
@@ -315,24 +340,34 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 
   <!-- 記入（上に、記録された習慣） -->
   <section class="pane" id="pane-new">
-    <div class="vsec" id="lives">
+    <div class="drift" id="drift" aria-hidden="true"></div>
+
+    <div class="layer" id="wWrite">
+      <div class="in">
+        <div class="orbwrap" id="orbWrap">
+          <button class="orb" id="orb" aria-label="write"></button>
+          <div class="orblab en" id="orbLab">tap to write</div>
+        </div>
+
+        <div id="form" hidden>
+          <label class="lab en" for="actIn">one minute</label>
+          <textarea id="actIn" rows="2" placeholder="1分で終わること" autocomplete="off"></textarea>
+          <div class="gap">
+            <label class="lab en" for="ancIn">after what</label>
+            <input type="text" id="ancIn" placeholder="歯みがきのあと" autocomplete="off">
+          </div>
+          <button class="keep en" id="keepBtn">keep</button>
+        </div>
+
+        <div class="pull en"><span>↓</span>pull down for others' habits</div>
+      </div>
+    </div>
+
+    <div class="layer off" id="wLives">
       <div class="in">
         <span class="lifeglow"></span>
         <div class="lifecard" id="lifecard"></div>
         <div class="pull en"><span>↑</span>swipe up to write</div>
-      </div>
-    </div>
-    <div class="vsec" id="entry">
-      <div class="drift" id="drift" aria-hidden="true"></div>
-      <div class="in">
-        <label class="lab en" for="actIn">one minute</label>
-        <textarea id="actIn" rows="2" placeholder="1分で終わることを書く" autocomplete="off"></textarea>
-        <div class="gap">
-          <label class="lab en" for="ancIn">after what</label>
-          <input type="text" id="ancIn" placeholder="歯みがきのあと" autocomplete="off">
-        </div>
-        <button class="keep en" id="keepBtn">keep</button>
-        <div class="pull en"><span>↓</span>pull down for others' habits</div>
       </div>
     </div>
   </section>
@@ -668,11 +703,32 @@ eOut.addEventListener("click",function(){ unkindle(editId); closeEdit(); });
 var actIn=document.getElementById("actIn"), ancIn=document.getElementById("ancIn");
 var keepBtn=document.getElementById("keepBtn");
 
+var orb=document.getElementById("orb"), orbWrap=document.getElementById("orbWrap");
+var orbLab=document.getElementById("orbLab"), form=document.getElementById("form");
+var wWrite=document.getElementById("wWrite"), wLives=document.getElementById("wLives");
+var mode="orb", backTo="orb";   /* orb → form → orb / lives */
+
+function setMode(m){
+  if(m==="lives" && mode!=="lives") backTo=mode;   /* 書きかけなら、書きかけへ戻す */
+  mode=m;
+  wWrite.classList.toggle("off", m==="lives");
+  wLives.classList.toggle("off", m!=="lives");
+  orbWrap.hidden = (m!=="orb");
+  form.hidden = (m!=="form");
+  if(m!=="form"){ actIn.blur(); ancIn.blur(); }
+  if(m==="form") setTimeout(function(){ actIn.focus(); }, 80);
+  if(m==="lives") renderLife();
+}
+orb.addEventListener("click",function(){
+  if(state.quests.length>=SLOTS) return;
+  setMode("form");
+});
 function renderEntry(){
   var full=state.quests.length>=SLOTS;
+  orb.classList.toggle("full", full);
+  orbLab.textContent = full ? "three is enough" : "tap to write";
   actIn.disabled=full; ancIn.disabled=full; keepBtn.disabled=full;
-  actIn.placeholder = full ? "three is enough" : "1分で終わることを書く";
-  keepBtn.textContent = full ? "three is enough" : "keep";
+  if(full && mode==="form") setMode("orb");
   ready();
 }
 function ready(){
@@ -698,7 +754,8 @@ function keep(){
     streak:0, last:null, grace:1, born:key()
   });
   save();
-  actIn.value=""; ancIn.value=""; actIn.blur(); ancIn.blur();
+  actIn.value=""; ancIn.value="";
+  setMode("orb");
   renderLines(); renderEntry(); go(1);
 }
 
@@ -743,30 +800,49 @@ document.getElementById("lifecard").addEventListener("click",function(e){
   var t=e.target.closest("[data-take]");
   if(!t) return;
   actIn.value=t.getAttribute("data-take");
+  setMode("form");
   ready();
-  toEntry();
-  setTimeout(function(){ actIn.focus(); }, 380);
 });
 
-/* 上から下へ引くと、次の記録が落ちてくる。 */
+/* 下へ引くと記録が落ちてくる。上へ払うと書く場所に戻る。
+   スクロールに任せるとスナップと喧嘩して渋いので、指の動きをそのまま面に渡す。 */
 var pane=document.getElementById("pane-new");
-var pullY=0, pulling=false;
+var gy=0, gx=0, gon=false, gaxis="";
+function layer(){ return mode==="lives" ? wLives : wWrite; }
+function drag(px){ layer().style.transform = px ? "translateY("+px.toFixed(1)+"px)" : ""; }
+
 pane.addEventListener("pointerdown",function(e){
-  if(e.target.closest("input,textarea,button")) return;
-  pulling=true; pullY=e.clientY;
+  if(e.target.closest("input,textarea,button,a")) return;
+  gon=true; gaxis=""; gy=e.clientY; gx=e.clientX;
 });
 pane.addEventListener("pointermove",function(e){
-  if(!pulling) return;
-  var dy=e.clientY-pullY;
-  if(pane.scrollTop<=2 && dy>70){ pullY=e.clientY; nextLife(); }
+  if(!gon) return;
+  var dy=e.clientY-gy, dx=e.clientX-gx;
+  if(!gaxis && (Math.abs(dy)>6 || Math.abs(dx)>6)) gaxis = Math.abs(dy)>Math.abs(dx) ? "y" : "x";
+  if(gaxis!=="y") return;
+  var pull = mode==="lives" ? dy : Math.max(dy, -30);
+  drag(pull*0.3);                                  /* ゴムのように少しだけ付いてくる */
 });
 ["pointerup","pointercancel","pointerleave"].forEach(function(ev){
-  pane.addEventListener(ev,function(){ pulling=false; });
+  pane.addEventListener(ev,function(e){
+    if(!gon) return;
+    gon=false;
+    var dy=(e.clientY||gy)-gy;
+    drag(0);
+    if(gaxis!=="y") return;
+    if(mode==="lives"){
+      if(dy>44) nextLife();
+      else if(dy<-44) setMode(backTo);
+    }else if(dy>52){
+      setMode("lives");
+    }
+  });
 });
 pane.addEventListener("wheel",function(e){
-  if(pane.scrollTop<=2 && e.deltaY<-30){ e.preventDefault(); nextLife(); }
+  if(e.deltaY>-24) return;
+  e.preventDefault();
+  if(mode==="lives") nextLife(); else setMode("lives");
 },{passive:false});
-function toEntry(){ pane.scrollTo({top:pane.clientHeight, behavior:"smooth"}); }
 
 /* ── 記録 ─────────────────────────────── */
 function renderDash(){
@@ -926,11 +1002,6 @@ function washi(){
 renderLines(); renderDash(); renderEntry(); drift(); washi();
 shuffleLives(); renderLife();
 
-/* 記入面は下（記入）から始める。記録は、上に引いたときだけ出る。 */
-function seat(){
-  if(!pane.clientHeight) return;
-  if(Math.abs(pane.scrollTop-pane.clientHeight)>2) pane.scrollTop=pane.clientHeight;
-}
 function center(){
   if(touched || !pager.clientWidth) return;
   pager.scrollLeft=pager.clientWidth;
@@ -939,11 +1010,11 @@ function center(){
 ["pointerdown","touchstart","wheel","keydown"].forEach(function(ev){
   window.addEventListener(ev,function(){ touched=true; },{passive:true});
 });
-center(); seat();
-requestAnimationFrame(function(){ center(); seat(); });
-window.addEventListener("load",function(){ center(); seat(); });
-if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ center(); seat(); }).catch(function(){});
-[60,200,500,900].forEach(function(ms){ setTimeout(function(){ center(); seat(); }, ms); });
+center();
+requestAnimationFrame(center);
+window.addEventListener("load",center);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(center).catch(function(){});
+[60,200,500,900].forEach(function(ms){ setTimeout(center, ms); });
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){

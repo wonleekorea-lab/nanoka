@@ -138,25 +138,77 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   background:radial-gradient(52% 58% at 50% 50%, var(--bloom), transparent 78%);
   opacity:0; transition:opacity 1.1s ease;
 }
-.line.on .glow{opacity:1}
+/* 押した数だけ明るくなる。--p は 0〜1。 */
+.line{--p:0}
+.line .glow{opacity:calc(var(--p) * .95)}
 .line .txt{
   position:relative; display:block; font-size:21px; font-weight:500; line-height:1.55;
-  letter-spacing:.005em; color:var(--sumi); transition:color .7s ease; text-wrap:pretty;
-  padding-right:46px;
+  letter-spacing:.005em; color:var(--sumi); transition:color .7s ease, text-shadow .7s ease;
+  text-wrap:pretty; padding-right:76px;
+  text-shadow:0 0 calc(var(--p) * 26px) var(--bloom);
 }
-.line.on .txt{color:var(--lit);text-shadow:0 0 22px var(--bloom)}
+@supports (color: color-mix(in srgb, red, blue)){
+  .line .txt{color:color-mix(in srgb, var(--sumi), var(--lit) calc(var(--p) * 100%))}
+}
+.line.pop .txt{animation:pop .45s ease}
+@keyframes pop{0%{transform:none}28%{transform:scale(1.035)}100%{transform:none}}
 .line .when{
   position:relative; display:block; margin-top:7px;
   font-size:12.5px; line-height:1.5; color:var(--sumi3); font-weight:400;
 }
-.line.on .when{color:var(--sumi2)}
-.wick{position:relative;display:flex;gap:6px;margin-top:20px}
+.line .when{transition:color .7s ease}
+.wick{position:relative;display:flex;gap:4px;margin-top:20px}
 .wick i{flex:1;height:2px;border-radius:1px;background:var(--rule);
   transition:background .6s ease, box-shadow .6s ease}
 .wick i.f{background:var(--lit);box-shadow:0 0 12px var(--bloom),0 0 3px var(--lit)}
 .wick i.now{animation:kindle 1s ease both}
 @keyframes kindle{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.02)}100%{transform:none;opacity:1}}
-.blank{height:2px;background:var(--rule);opacity:.4}
+.slot{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+}
+.slot .bar{flex:1;height:2px;background:var(--rule);opacity:.4;transition:opacity .2s,background .2s}
+.slot .cap{color:var(--sumi3);font-size:9.5px;flex:none}
+.slot:hover .bar{opacity:.9;background:var(--lit)}
+.slot:hover .cap{color:var(--lit)}
+
+/* 身についたもの：◯が貯まっていく */
+.orbs{display:flex;flex-wrap:wrap;gap:14px;max-height:50dvh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+.orbs::-webkit-scrollbar{display:none}
+.dot{
+  position:relative;flex:none;width:58px;height:58px;border-radius:50%;
+  background:radial-gradient(58% 58% at 50% 44%, var(--bloom-cell), rgba(255,166,56,.10) 72%, transparent 80%);
+  border:1px solid rgba(255,178,77,.32);
+  box-shadow:0 0 18px var(--bloom);
+  transition:transform .18s, box-shadow .3s, border-color .3s;
+}
+.dot:active{transform:scale(.94)}
+.dot.on{box-shadow:0 0 32px var(--bloom),0 0 5px var(--lit);border-color:var(--lit)}
+
+/* 待ち：◯が重なっている */
+.pile{display:flex;flex-wrap:wrap;padding-left:20px;max-height:44dvh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+.pile::-webkit-scrollbar{display:none}
+.pile .dot{
+  margin:0 0 16px -20px;
+  background:radial-gradient(58% 58% at 50% 44%, rgba(255,178,77,.09), transparent 78%);
+  border:1px dashed var(--rule); box-shadow:none;
+}
+.pile .dot.on{border-color:var(--lit);border-style:solid;box-shadow:0 0 24px var(--bloom)}
+.card{
+  margin-top:18px;border:1px solid var(--edge);border-radius:3px;
+  padding:14px 15px;background:var(--sheet);
+}
+.card .ct{font-size:16.5px;line-height:1.5;color:var(--sumi)}
+.card .cw{margin-top:5px;font-size:12px;color:var(--sumi3)}
+.card .cb{display:flex;gap:8px;margin-top:13px;align-items:center;flex-wrap:wrap}
+.card .cb button{border:1px solid var(--edge);border-radius:999px;
+  padding:7px 14px;font-size:10px;color:var(--sumi2)}
+.card .cb button:hover{border-color:var(--lit);color:var(--lit)}
+.card .cb time{margin-left:auto;color:var(--sumi3);font-size:10px;font-variant-numeric:tabular-nums}
+.card .cap{color:var(--sumi3);font-size:10px;margin-bottom:8px}
+.card .pick{display:flex;flex-direction:column;gap:7px}
+.card .pick button{text-align:left;border-radius:2px;padding:10px 12px;font-size:14.5px}
 
 /* 待ち／浄めたもの の一覧 */
 .listhead{display:flex;align-items:center;justify-content:space-between;
@@ -190,6 +242,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   color:var(--sumi3); font-size:9.5px; line-height:1;
 }
 .fix:hover{color:var(--lit)}
+.back1{
+  position:absolute; right:36px; top:-1px; padding:8px 7px 10px;
+  color:var(--sumi3); font-size:13px; line-height:1;
+}
+.back1:hover{color:var(--lit)}
 .undo{
   display:flex; align-items:center; gap:10px; margin-top:12px;
   color:var(--sumi3); font-size:10px;
@@ -311,6 +368,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   0%{opacity:0;transform:translateY(8px)} 20%{opacity:1;transform:none}
   62%{opacity:1;transform:none} 100%{opacity:0;transform:translateY(-6px)}
 }
+#blaze{
+  position:fixed;inset:0;z-index:49;pointer-events:none;opacity:0;
+  background:radial-gradient(62% 52% at 50% 55%, rgba(255,220,160,.9),
+              rgba(255,166,56,.38) 44%, transparent 76%);
+}
+#blaze.go{animation:blaze 1.6s ease-out both}
+@keyframes blaze{0%{opacity:0}10%{opacity:1}100%{opacity:0}}
 #rite{
   position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
   padding:0 34px;background:var(--paper);
@@ -403,8 +467,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   <section class="pane" id="pane-today">
     <div class="layer off" id="tDone">
       <div class="in">
-        <div class="listhead"><span class="en">cleared</span><button class="en" data-back>back</button></div>
-        <div class="list" id="doneList"></div>
+        <div class="listhead"><span class="en">kept</span><button class="en" data-back>back</button></div>
+        <div class="orbs" id="doneList"></div>
+        <div id="doneCard"></div>
       </div>
     </div>
 
@@ -420,7 +485,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
     <div class="layer off" id="tQueue">
       <div class="in">
         <div class="listhead"><span class="en">waiting</span><button class="en" data-back>back</button></div>
-        <div class="list" id="queueList"></div>
+        <div class="pile" id="queueList"></div>
+        <div id="queueCard"></div>
       </div>
     </div>
   </section>
@@ -435,7 +501,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
       <div class="nums">
         <div><b id="nLit">0</b><span class="en">lit</span></div>
         <div><b id="nPure">0</b><span class="en">released</span></div>
-        <div><b id="nRun">0</b><span class="en">in a row</span></div>
+        <div><b id="nRun">0</b><span class="en">today</span></div>
       </div>
 
       <div class="mark en">days</div>
@@ -477,6 +543,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   <button data-go="2" aria-label="days"><span></span></button>
 </nav>
 
+<div id="blaze"></div>
 <div id="whisper"></div>
 <div id="rite"><div class="up" id="riteText"></div></div>
 
@@ -492,14 +559,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
     <button class="en keepb" id="eSave">save</button>
     <button class="en" id="eDrop">let go</button>
   </div>
-  <button class="out en" id="eOut" hidden>put today's light out</button>
+  <button class="out en" id="eOut" hidden>take one back</button>
 </div>
 
 <script>
 (function(){
 "use strict";
 
-var KEY="nanoka.v1", GOAL=7, SLOTS=3;
+var KEY="nanoka.v1", GOAL=10, SLOTS=3;
 
 /* ── すでにある一日。くっつけ先の下敷きとして、欄を開くたびに一つ出す。 */
 var HINTS=[
@@ -563,6 +630,9 @@ function load(){
     s.archive=s.archive||[]; s.lit=s.lit||0; s.updatedAt=s.updatedAt||0;
     s.taught=!!s.taught; s.days=s.days||{}; s.notes=s.notes||[]; s.queue=s.queue||[];
     s.seen=s.seen||[];
+    /* 連続日数から回数へ。一日に何度でも押せる形に移した。 */
+    function cnt(q){ if(typeof q.count!=="number") q.count=q.streak||0; }
+    s.quests.forEach(cnt); s.queue.forEach(cnt);
     return s;
   }catch(e){ return blank(); }
 }
@@ -587,83 +657,105 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
 
 /* ── 今日の三行 ───────────────────────── */
 function lineHtml(q, justNow){
-  var on=q.last===key(), w="";
+  var n=q.count||0, w="";
   for(var i=0;i<GOAL;i++){
-    var c=i<q.streak?"f":"";
-    if(justNow && i===q.streak-1) c+=" now";
+    var c=i<n?"f":"";
+    if(justNow && i===n-1) c+=" now";
     w+='<i class="'+c+'"></i>';
   }
   return '<div class="row">'+
-    '<button class="line'+(on?" on":"")+'" data-id="'+q.id+'" aria-pressed="'+on+'">'+
+    '<button class="line'+(justNow?" pop":"")+'" data-id="'+q.id+'"'+
+      ' style="--p:'+(n/GOAL).toFixed(3)+'" aria-label="'+esc(q.action)+' '+n+'/'+GOAL+'">'+
       '<span class="glow"></span>'+
       '<span class="txt">'+esc(q.action)+"</span>"+
       (q.anchor?'<span class="when">'+esc(q.anchor)+"</span>":"")+
       '<span class="wick">'+w+"</span></button>"+
+    (n>0?'<button class="back1" data-back1="'+q.id+'" aria-label="ひとつ戻す">−</button>':"")+
     '<button class="fix en" data-fix="'+q.id+'">edit</button>'+
   "</div>";
 }
 function renderLines(justNowId){
   var h="";
   state.quests.forEach(function(q){ h+=lineHtml(q, q.id===justNowId); });
-  for(var i=state.quests.length;i<SLOTS;i++) h+='<div class="blank"></div>';
+  for(var i=state.quests.length;i<SLOTS;i++){
+    h+='<button class="slot" data-slot="1"><span class="bar"></span>'+
+       '<span class="cap en">'+(state.queue.length? state.queue.length+" waiting" : "write")+
+       "</span></button>";
+  }
   document.getElementById("lines").innerHTML=h;
 
   var foot=document.getElementById("foot");
-  if(undoData){
-    foot.innerHTML='<div class="undo"><span class="en">lit just now</span>'+
-                   '<button class="en" id="undoBtn">undo</button></div>';
-  }else if(!state.quests.length){
-    foot.innerHTML='<div class="nudge">‹</div>';
-  }else if(!state.taught){
-    foot.innerHTML='<div class="tip en">touch to light · edit to change</div>';
-  }else foot.innerHTML="";
+  if(!state.quests.length) foot.innerHTML='<div class="nudge">‹</div>';
+  else if(!state.taught) foot.innerHTML='<div class="tip en">touch to light · − to take one back</div>';
+  else foot.innerHTML="";
   renderEdges();
 }
 
 /* ── 待ち／浄めたもの ─────────────────── */
 function renderEdges(){
   var top=document.getElementById("hintTop"), bot=document.getElementById("hintBot");
-  top.textContent = state.archive.length ? "↓ "+state.archive.length+" cleared" : "";
-  bot.textContent = state.queue.length ? "↑ "+state.queue.length+" waiting" : "";
+  top.textContent = state.archive.length ? "↑ "+state.archive.length+" kept" : "";
+  bot.textContent = state.queue.length ? "↓ "+state.queue.length+" waiting" : "";
 }
 
 function renderQueue(){
-  var box=document.getElementById("queueList");
+  var box=document.getElementById("queueList"),
+      card=document.getElementById("queueCard");
+  card.innerHTML="";
   if(!state.queue.length){
-    box.innerHTML='<p class="none en">nothing waiting.</p>';
+    box.innerHTML='<p class="none en" style="padding-left:20px">nothing waiting.</p>';
   }else{
     var h="";
     state.queue.forEach(function(q,i){
-      h+='<div class="qrow" data-q="'+i+'">'+
-         '<div class="qt">'+esc(q.action)+"</div>"+
-         (q.anchor?'<div class="qw">'+esc(q.anchor)+"</div>":"")+
-         '<div class="qb"><button class="en" data-set="'+i+'">set</button>'+
-         '<button class="en" data-qedit="'+esc(q.id)+'">edit</button>'+
-         '<button class="en" data-qdrop="'+i+'">let go</button></div>'+
-         '<div class="swap" data-swap="'+i+'" hidden></div></div>';
+      h+='<button class="dot" data-qdot="'+i+'" aria-label="'+esc(q.action)+'"></button>';
     });
     box.innerHTML=h;
   }
   renderEdges();
 }
 
+/* 重なった◯のひとつを開く。据える・直す・手放すは、そこから。 */
+function openQueueDot(i){
+  var q=state.queue[i], card=document.getElementById("queueCard");
+  if(!q){ card.innerHTML=""; return; }
+  document.querySelectorAll("#queueList .dot").forEach(function(el,k){
+    el.classList.toggle("on", k===i);
+  });
+  var h='<div class="card"><div class="ct">'+esc(q.action)+"</div>"+
+        (q.anchor?'<div class="cw">'+esc(q.anchor)+"</div>":"")+
+        '<div class="cb"><button class="en" data-set="'+i+'">set</button>'+
+        '<button class="en" data-qedit="'+esc(q.id)+'">edit</button>'+
+        '<button class="en" data-qdrop="'+i+'">let go</button></div>'+
+        '<div class="swap" data-swap="'+i+'" hidden></div></div>';
+  card.innerHTML=h;
+}
+
 function renderDone(){
-  var box=document.getElementById("doneList");
+  var box=document.getElementById("doneList"),
+      card=document.getElementById("doneCard");
+  card.innerHTML="";
   if(!state.archive.length){
-    box.innerHTML='<p class="none en">nothing cleared yet.</p>';
+    box.innerHTML='<p class="none en">nothing kept yet.</p>';
   }else{
     var h="";
-    state.archive.slice().reverse().forEach(function(a,i){
-      var idx=state.archive.length-1-i;
-      h+='<div class="qrow">'+
-         '<div class="qt">'+esc(a.action)+"</div>"+
-         (a.anchor?'<div class="qw">'+esc(a.anchor)+"</div>":"")+
-         '<div class="qb"><button class="en" data-back-in="'+idx+'">bring back</button>'+
-         "<time>"+esc(a.done)+"</time></div></div>";
+    state.archive.forEach(function(a,i){
+      h+='<button class="dot" data-adot="'+i+'" aria-label="'+esc(a.action)+'"></button>';
     });
     box.innerHTML=h;
   }
   renderEdges();
+}
+
+function openDoneDot(i){
+  var a=state.archive[i], card=document.getElementById("doneCard");
+  if(!a){ card.innerHTML=""; return; }
+  document.querySelectorAll("#doneList .dot").forEach(function(el,k){
+    el.classList.toggle("on", k===i);
+  });
+  card.innerHTML='<div class="card"><div class="ct">'+esc(a.action)+"</div>"+
+    (a.anchor?'<div class="cw">'+esc(a.anchor)+"</div>":"")+
+    '<div class="cb"><button class="en" data-back-in="'+i+'">bring back</button>'+
+    "<time>"+esc(a.done)+"</time></div></div>";
 }
 
 /* 待ちの一つを、三つのどれかに据える。空きがあればそのまま。 */
@@ -683,19 +775,21 @@ function setFromQueue(i, swapId){
     if(!out) return;
     state.queue.splice(i,1);
     state.quests.push(q);
-    state.queue.unshift(out);          /* 外したものは待ちの先頭へ。記録はそのまま */
+    state.queue.unshift(out);          /* 外したものは待ちの先頭へ。回数はそのまま */
   }
   save(); renderLines(); renderQueue(); tMode("today");
 }
 
-document.getElementById("queueList").addEventListener("click",function(e){
+document.getElementById("tQueue").addEventListener("click",function(e){
+  var dot=e.target.closest("[data-qdot]");
+  if(dot){ openQueueDot(+dot.getAttribute("data-qdot")); return; }
   var setB=e.target.closest("[data-set]"), dropB=e.target.closest("[data-qdrop]"),
       pick=e.target.closest("[data-pick]"), edB=e.target.closest("[data-qedit]");
   if(pick){ setFromQueue(+pick.getAttribute("data-qi"), pick.getAttribute("data-pick")); return; }
   if(edB){ openEdit(edB.getAttribute("data-qedit")); return; }
   if(dropB){
     state.queue.splice(+dropB.getAttribute("data-qdrop"),1);
-    save(); renderQueue(); return;
+    save(); renderQueue(); renderLines(); return;
   }
   if(setB){
     var i=+setB.getAttribute("data-set");
@@ -703,15 +797,17 @@ document.getElementById("queueList").addEventListener("click",function(e){
     var box=document.querySelector('[data-swap="'+i+'"]');
     if(!box) return;
     if(!box.hidden){ box.hidden=true; return; }
-    var h='<div class="cap en">which one steps out?</div>';
+    var h='<div class="cap en">which one steps out?</div><div class="pick">';
     state.quests.forEach(function(q){
       h+='<button data-pick="'+q.id+'" data-qi="'+i+'">'+esc(q.action)+"</button>";
     });
-    box.innerHTML=h; box.hidden=false;
+    box.innerHTML=h+"</div>"; box.hidden=false;
   }
 });
 
-document.getElementById("doneList").addEventListener("click",function(e){
+document.getElementById("tDone").addEventListener("click",function(e){
+  var dot=e.target.closest("[data-adot]");
+  if(dot){ openDoneDot(+dot.getAttribute("data-adot")); return; }
   var b=e.target.closest("[data-back-in]");
   if(!b) return;
   var idx=+b.getAttribute("data-back-in"), a=state.archive[idx];
@@ -719,59 +815,51 @@ document.getElementById("doneList").addEventListener("click",function(e){
   state.archive.splice(idx,1);
   var q={ id:"q"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
     title:a.title||a.action, action:a.action, anchor:a.anchor||"", cheer:"よし",
-    streak:0, last:null, grace:1, born:key() };
+    count:0, last:null, born:key() };
   if(state.quests.length<SLOTS) state.quests.push(q); else state.queue.push(q);
   save(); renderLines(); renderQueue(); renderDone(); renderDash(); tMode("today");
 });
 
-/* ── 灯す。押し間違いから戻れるようにしておく。 ───────── */
-var undoData=null, undoTimer=null;
+/* ── 灯す。一日に何度でも。10で成仏する。 ───────────── */
 function kindle(id){
   var q=find(id), t=key();
-  if(!q || q.last===t) return;
-
-  var before={id:id, last:q.last, streak:q.streak, grace:q.grace};
-  if(!q.last){ q.streak=1; }
-  else{
-    var d=gap(t,q.last);
-    if(d===1) q.streak++;
-    else if(d===2 && q.grace>0){ q.grace--; q.streak++; }
-    else q.streak=1;
-  }
-  q.last=t; state.lit++; state.days[t]=(state.days[t]||0)+1; state.taught=true;
-
-  if(q.streak>=GOAL){ purify(q); return; }
-  undoData=before;
-  clearTimeout(undoTimer);
-  undoTimer=setTimeout(function(){ undoData=null; renderLines(); }, 9000);
+  if(!q) return;
+  q.count=(q.count||0)+1;
+  q.last=t;
+  state.lit++; state.days[t]=(state.days[t]||0)+1; state.taught=true;
+  if(q.count>=GOAL){ purify(q); return; }
   save(); renderLines(id); renderDash(); whisper("よし");
 }
 
-/* 灯した分を、そのまま返す。 */
+/* 押し間違いを、そのまま返す。回数が残っているあいだ、いつでも押せる。 */
 function unkindle(id){
-  var q=find(id||(undoData&&undoData.id)), t=key();
-  if(!q || q.last!==t) return;
-  var back = (undoData && undoData.id===q.id) ? undoData : null;
-  q.last = back ? back.last : null;
-  q.streak = back ? back.streak : Math.max(0,q.streak-1);
-  if(back) q.grace = back.grace;
+  var q=find(id), t=key();
+  if(!q || !(q.count>0)) return;
+  q.count--;
   state.lit=Math.max(0,state.lit-1);
-  state.days[t]=Math.max(0,(state.days[t]||1)-1);
-  if(!state.days[t]) delete state.days[t];
-  undoData=null; clearTimeout(undoTimer);
+  if(state.days[t]){
+    state.days[t]=Math.max(0,state.days[t]-1);
+    if(!state.days[t]) delete state.days[t];
+  }
   save(); renderLines(); renderDash();
 }
 
 function purify(q){
   state.quests=state.quests.filter(function(x){ return x.id!==q.id; });
-  state.archive.push({title:q.title||q.action, action:q.action, anchor:q.anchor, done:key()});
-  undoData=null;
+  state.archive.push({title:q.title||q.action, action:q.action, anchor:q.anchor,
+                      done:key(), count:q.count});
   if(state.queue.length) state.quests.push(state.queue.shift());   /* 空いた枠に、待ちの先頭 */
-  save(); renderLines(); renderQueue(); renderDash();
+  save(); renderLines(); renderQueue(); renderDone(); renderDash();
+
+  /* 全体を明るく照らしてから、上へ移す。 */
+  var b=document.getElementById("blaze");
+  b.classList.remove("go"); void b.offsetWidth; b.classList.add("go");
   var r=document.getElementById("rite");
   document.getElementById("riteText").textContent=q.action;
-  r.classList.add("on");
-  setTimeout(function(){ r.classList.remove("on"); }, 2300);
+  setTimeout(function(){
+    r.classList.add("on");
+    setTimeout(function(){ r.classList.remove("on"); }, 2300);
+  }, 380);
 }
 
 function whisper(text){
@@ -782,13 +870,17 @@ function whisper(text){
 
 var lines=document.getElementById("lines");
 lines.addEventListener("click",function(e){
+  var b1=e.target.closest("[data-back1]");
+  if(b1){ unkindle(b1.getAttribute("data-back1")); return; }
   var f=e.target.closest("[data-fix]");
   if(f){ openEdit(f.getAttribute("data-fix")); return; }
+  if(e.target.closest("[data-slot]")){
+    if(state.queue.length) tMode("queue");     /* 溜めたものから選ぶ */
+    else { setMode("form"); go(0); }           /* 何も無ければ書く */
+    return;
+  }
   var el=e.target.closest(".line");
   if(el) kindle(el.getAttribute("data-id"));
-});
-document.getElementById("foot").addEventListener("click",function(e){
-  if(e.target.closest("#undoBtn")) unkindle();
 });
 
 /* ── 直す ─────────────────────────────── */
@@ -811,7 +903,7 @@ function openEdit(id){
   editId=id; editFrom=f.from; dropArmed=false;
   eDrop.textContent="let go";
   eWhat.value=f.q.action||""; eWhen.value=f.q.anchor||"";
-  eOut.hidden = (f.from!=="quests" || f.q.last!==key());
+  eOut.hidden = (f.from!=="quests" || !(f.q.count>0));
   sheetBg.classList.add("on"); sheet.classList.add("on");
 }
 function closeEdit(){
@@ -894,7 +986,7 @@ function keep(){
   var q={
     id:"q"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
     title:a, action:a, anchor:ancIn.value.trim(), cheer:"よし",
-    streak:0, last:null, grace:1, born:key()
+    count:0, last:null, born:key()
   };
   /* 三つ埋まっていても捨てない。待ちに置く。 */
   if(state.quests.length<SLOTS) state.quests.push(q); else state.queue.push(q);
@@ -1012,13 +1104,14 @@ paneT.addEventListener("click",function(e){
 swipey(paneT,{
   layer:function(){ return tView==="queue" ? tQueue : tView==="done" ? tDone : tToday; },
   allow:function(dir, target){
-    var list=target && target.closest ? target.closest(".list") : null;
-    if(tView==="queue") return dir>0 && atTop(list);      /* 下へ引いて戻る */
-    if(tView==="done")  return dir<0 && atTop(list);      /* 上へ払って戻る */
+    var list=target && target.closest ? target.closest(".list,.pile,.orbs") : null;
+    if(tView==="queue") return dir<0 && atTop(list);      /* 上へ払って戻る */
+    if(tView==="done")  return dir>0 && atTop(list);      /* 下へ引いて戻る */
     return true;
   },
-  down:function(){ if(tView==="today") tMode("done"); else if(tView==="queue") tMode("today"); },
-  up:function(){ if(tView==="today") tMode("queue"); else if(tView==="done") tMode("today"); }
+  /* 上へ払えば身についたもの、下へ引けば溜めたもの。成仏したものは上にある。 */
+  up:function(){ if(tView==="today") tMode("done"); else if(tView==="queue") tMode("today"); },
+  down:function(){ if(tView==="today") tMode("queue"); else if(tView==="done") tMode("today"); }
 });
 
 /* 記録の面：末尾まで送ってから上へ払うと掲示板。 */
@@ -1052,8 +1145,7 @@ function renderDash(){
   document.getElementById("dSub").textContent=key(d);
   document.getElementById("nLit").textContent=state.lit;
   document.getElementById("nPure").textContent=state.archive.length;
-  var run=0; state.quests.forEach(function(q){ if(q.streak>run) run=q.streak; });
-  document.getElementById("nRun").textContent=run;
+  document.getElementById("nRun").textContent=state.days[key(d)]||0;
 
   var t=key(), today=toDate(t), h="", i;
   var end=new Date(today); end.setDate(end.getDate() + (6 - end.getDay()));

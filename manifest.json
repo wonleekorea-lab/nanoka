@@ -1,6 +1,6 @@
 {
-  "name": "ember — seven days, then let it go",
-  "short_name": "ember",
+  "name": "anchor — 1分の行動を、一日の瞬間につなぐ",
+  "short_name": "anchor",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

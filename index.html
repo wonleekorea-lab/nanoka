@@ -150,8 +150,33 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 @supports (color: color-mix(in srgb, red, blue)){
   .line .txt{color:color-mix(in srgb, var(--sumi), var(--lit) calc(var(--p) * 100%))}
 }
-.line.pop .txt{animation:pop .45s ease}
-@keyframes pop{0%{transform:none}28%{transform:scale(1.035)}100%{transform:none}}
+/* 押した瞬間。落ち着いた明るさとは別に、当たりだけを短く強く出す。 */
+.line .burst{
+  position:absolute; left:-64px; right:-64px; top:-58px; bottom:-42px; pointer-events:none;
+  opacity:0; border-radius:50%;
+  background:radial-gradient(44% 50% at 50% 50%, var(--hot), var(--bloom) 36%, transparent 72%);
+}
+.line.hit .burst{animation:burst .8s cubic-bezier(.15,.82,.28,1) both}
+@keyframes burst{
+  0%{opacity:0;transform:scale(.66)}
+  8%{opacity:var(--burst,.8);transform:scale(1)}
+  100%{opacity:0;transform:scale(1.18)}
+}
+.line .ring{
+  position:absolute; left:50%; top:46%; width:24px; height:24px; margin:-12px 0 0 -12px;
+  border-radius:50%; border:1.5px solid var(--hot); opacity:0; pointer-events:none;
+}
+.line.hit .ring{animation:ring .66s cubic-bezier(.2,.72,.3,1) both}
+@keyframes ring{
+  0%{opacity:.95;transform:scale(.25)}
+  100%{opacity:0;transform:scale(10)}
+}
+.line.hit .txt{animation:hitpop .62s cubic-bezier(.2,.8,.3,1)}
+@keyframes hitpop{
+  0%{transform:none}
+  13%{transform:scale(1.055);color:var(--hot);text-shadow:0 0 36px var(--hot)}
+  100%{transform:none}
+}
 .line .when{
   position:relative; display:block; margin-top:7px;
   font-size:12.5px; line-height:1.5; color:var(--sumi3); font-weight:400;
@@ -161,8 +186,12 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
 .wick i{flex:1;height:2px;border-radius:1px;background:var(--rule);
   transition:background .6s ease, box-shadow .6s ease}
 .wick i.f{background:var(--lit);box-shadow:0 0 12px var(--bloom),0 0 3px var(--lit)}
-.wick i.now{animation:kindle 1s ease both}
-@keyframes kindle{0%{transform:scaleX(0);opacity:0}60%{transform:scaleX(1.02)}100%{transform:none;opacity:1}}
+.wick i.now{animation:strike .72s cubic-bezier(.2,.8,.3,1) both}
+@keyframes strike{
+  0%{transform:scaleX(.18) scaleY(2.6);background:var(--hot);box-shadow:0 0 26px var(--hot)}
+  38%{transform:scaleX(1) scaleY(1.9);background:var(--hot);box-shadow:0 0 20px var(--hot)}
+  100%{transform:none}
+}
 .slot{
   display:flex;align-items:center;gap:12px;width:100%;text-align:left;
 }
@@ -363,11 +392,19 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   position:fixed;left:0;right:0;top:42%;z-index:40;pointer-events:none;text-align:center;
   font-size:30px;font-weight:700;letter-spacing:.16em;color:var(--lit);opacity:0;
 }
-#whisper.go{animation:whisper 2.2s ease both}
+#whisper.go{animation:whisper 1.5s cubic-bezier(.2,.8,.3,1) both}
 @keyframes whisper{
-  0%{opacity:0;transform:translateY(8px)} 20%{opacity:1;transform:none}
-  62%{opacity:1;transform:none} 100%{opacity:0;transform:translateY(-6px)}
+  0%{opacity:0;transform:translateY(10px) scale(.9)}
+  16%{opacity:1;transform:none}
+  55%{opacity:1;transform:none}
+  100%{opacity:0;transform:translateY(-10px) scale(1.04)}
 }
+#pulse{
+  position:fixed;inset:0;z-index:38;pointer-events:none;opacity:0;
+  background:radial-gradient(72% 56% at 50% 47%, var(--bloom), transparent 74%);
+}
+#pulse.go{animation:pulse .58s ease-out both}
+@keyframes pulse{0%{opacity:0}13%{opacity:var(--pw,.5)}100%{opacity:0}}
 #blaze{
   position:fixed;inset:0;z-index:49;pointer-events:none;opacity:0;
   background:radial-gradient(62% 52% at 50% 55%, rgba(255,220,160,.9),
@@ -543,6 +580,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;paddin
   <button data-go="2" aria-label="days"><span></span></button>
 </nav>
 
+<div id="pulse"></div>
 <div id="blaze"></div>
 <div id="whisper"></div>
 <div id="rite"><div class="up" id="riteText"></div></div>
@@ -663,10 +701,13 @@ function lineHtml(q, justNow){
     if(justNow && i===n-1) c+=" now";
     w+='<i class="'+c+'"></i>';
   }
+  /* 1回でも見えるように、明るさは直線ではなく立ち上がりを早くする。 */
+  var p=Math.pow(n/GOAL, 0.62);
   return '<div class="row">'+
-    '<button class="line'+(justNow?" pop":"")+'" data-id="'+q.id+'"'+
-      ' style="--p:'+(n/GOAL).toFixed(3)+'" aria-label="'+esc(q.action)+' '+n+'/'+GOAL+'">'+
-      '<span class="glow"></span>'+
+    '<button class="line'+(justNow?" hit":"")+'" data-id="'+q.id+'"'+
+      ' style="--p:'+p.toFixed(3)+';--burst:'+(0.55+0.4*p).toFixed(2)+'"'+
+      ' aria-label="'+esc(q.action)+' '+n+'/'+GOAL+'">'+
+      '<span class="glow"></span><span class="burst"></span><span class="ring"></span>'+
       '<span class="txt">'+esc(q.action)+"</span>"+
       (q.anchor?'<span class="when">'+esc(q.anchor)+"</span>":"")+
       '<span class="wick">'+w+"</span></button>"+
@@ -829,6 +870,11 @@ function kindle(id){
   state.lit++; state.days[t]=(state.days[t]||0)+1; state.taught=true;
   if(q.count>=GOAL){ purify(q); return; }
   save(); renderLines(id); renderDash(); whisper("よし");
+  /* 進むほど強く応える。10本目は blaze が受け持つ。 */
+  var pw=(0.30+0.45*Math.pow(q.count/GOAL,0.62)).toFixed(2);
+  var pu=document.getElementById("pulse");
+  pu.style.setProperty("--pw", pw);
+  pu.classList.remove("go"); void pu.offsetWidth; pu.classList.add("go");
 }
 
 /* 押し間違いを、そのまま返す。回数が残っているあいだ、いつでも押せる。 */
